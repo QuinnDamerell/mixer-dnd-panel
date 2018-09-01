@@ -1,0 +1,26 @@
+{
+  "coverUrl": null,
+  "createdAt": "2018-09-01T17:32:25.000Z",
+  "deletedAt": null,
+  "description": null,
+  "hasPublishedVersions": false,
+  "id": 276330,
+  "installation": null,
+  "isShared": false,
+  "name": "DnD Panel",
+  "ownerId": 213923,
+  "typeId": 75024,
+  "updatedAt": "2018-09-01T17:32:25.000Z",
+  "versions": [
+    {
+      "changelog": "Initial release",
+      "createdAt": "2018-09-01T17:32:25.000Z",
+      "id": 282246,
+      "installation": null,
+      "state": "draft",
+      "updatedAt": "2018-09-01T17:32:32.000Z",
+      "version": "0.1.0",
+      "versionOrder": 256
+    }
+  ]
+}

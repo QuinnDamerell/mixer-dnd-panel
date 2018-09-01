@@ -1,0 +1,8 @@
+[submodule "interactive/interactive-cpp"]
+	path = interactive/interactive-cpp
+	url = https://github.com/mixer/interactive-cpp.git
+	branch = master
+[submodule "interactive/rapidjson"]
+	path = interactive/rapidjson
+	url = https://github.com/Tencent/rapidjson.git
+	branch = master
