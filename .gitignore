@@ -47,3 +47,4 @@ jspm_packages
 /cdk/DnDPanel/package-lock.json
 /cdk/DnDPanel/build/*
 /interactive/build_win64/*
+/.vscode/settings.json

@@ -2,13 +2,110 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Awesome Interactive Integration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="HandheldFriendly" content="true" />
+  <title>Dnd Panel</title>
   <script src="https://mixercc.azureedge.net/lib/std-v0.2.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet"> 
+  <style>
+      #footer{
+        position: absolute;
+        background: rgba(0, 0, 0, 0.3);
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+        padding: 5px;
+
+        font-family: 'VT323', monospace;
+        color: white;
+      }
+
+      #overlay {
+        position: absolute;
+        background-color: rgba(1, 69, 255, 0.1);
+        font-family: 'VT323', monospace;
+        color: white;
+      }
+
+      #player-info{
+        position: absolute;
+        top:50px;
+        padding:5px;
+        background: rgba(0, 0, 0, 0.8);
+        font-size: 20px;
+      }
+
+      #player-info-popup {
+        position:absolute;
+        padding:5px;
+        width:350px;
+        background: rgba(0, 0, 0, 0.9);
+        display:none;
+        font-family: 'Courier New', Courier, monospace;
+        left:0px;
+        top:35px;
+        font-size: 15px;
+      }
+  
+  </style>
 </head>
 <body>
-  <button id="hello-world">Hello world!</button>
+    <div id="overlay">
 
+        <div class="player-other2" id="player-info" style="left:60%" >Other 2
+            <div class="popup" id="player-info-popup">
+                <strong>Other - Less cool person</strong>
+                <br/>
+                Text about carl, carl is a guy, he is amazing. He is better than anyone else.
+                <br/>
+                <strong>Base Health:</strong> 5hp<br />
+                <strong>Other Stat:</strong> over 9000<br />
+            </div>
+        </div>
+        <div class="player-other" id="player-info" style="left:40%"> Other
+            <div class="popup" id="player-info-popup">
+                <strong>Other - Less cool person</strong>
+                <br/>
+                Text about carl, carl is a guy, he is amazing. He is better than anyone else.
+                <br/>
+                <strong>Base Health:</strong> 5hp<br />
+                <strong>Other Stat:</strong> over 9000<br />
+            </div>
+        </div>
+        <div class="player-carl" id="player-info" style="left:20%" >Carl
+            <div class="popup" id="player-info-popup">
+                <strong>CARL - WIZARD WHO'S AWESOME</strong>
+                <br/>
+                Text about carl, carl is a guy, he is amazing. He is better than anyone else.
+                <br/>
+                <strong>Base Health:</strong> 5hp<br />
+                <strong>Other Stat:</strong> over 9000<br />
+            </div>
+        </div>
+
+    </div>
+    <div id="footer" style="z-index: -5">
+        <div style="float:unset">
+            <div style="float:left; font-size: 18px;">Carl</div>
+            <div class="player-minus-0" style="float:left; margin-left: 5px; margin-right: 5px; text-align: center; font-size: 18px; border-style: solid; border-width: 1px; width:18px;">-</div>
+            <div style="float:left;">
+                <div class="player-influence-neg-0" style="position: absolute; left:65px; background: red; height:11px; width:0px; top:9px; z-index: -1;" ></div>
+                <div class="player-influence-pos-0" style="position: absolute; left:165px; background: green; height:11px; width:0px; top:9px; z-index: -1;" ></div>
+                <div style="border-style: solid; border-width: 1px; width: 200px; margin-top: 9px;"></div>
+                <div style="position: absolute; left:70px; " >-2</div>
+                <div style="position: absolute; left:76px; border-style: solid; border-width: 1px; height:4px; top:10px; " ></div>
+                <div style="position: absolute; left:123px; " >-1</div>
+                <div style="position: absolute; left:129px; border-style: solid; border-width: 1px; height:4px; top:10px; " ></div>
+                <div style="position: absolute; left:190px; " >+1</div>
+                <div style="position: absolute; left:195px; border-style: solid; border-width: 1px; height:4px; top:10px; "  ></div>
+                <div style="position: absolute; left:248px; " >+2</div>
+                <div style="position: absolute; left:253px; border-style: solid; border-width: 1px; height:4px; top:10px; " ></div>
+            </div>
+            <div class="player-plus-0" style="float:left; margin-left: 5px; margin-right: 5px; text-align: center; font-size: 18px; border-style: solid; border-width: 1px; width:18px;">+</div>
+        </div>
+    </div>
+
+  <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
   <script src="./scripts.js"></script>
 </body>
 </html>

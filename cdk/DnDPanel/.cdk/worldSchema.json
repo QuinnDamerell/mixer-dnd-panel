@@ -6,9 +6,9 @@
         {
           "controls": [
             {
-              "controlID": "my_first_button",
+              "controlID": "tunnel-button",
               "cost": 100,
-              "disabled": true,
+              "disabled": false,
               "kind": "button",
               "position": [
                 {
@@ -28,35 +28,12 @@
               ],
               "progress": 0.5,
               "text": "My First Button"
-            },
-            {
-              "angle": 0.7,
-              "controlID": "my_awesome_joystick",
-              "disabled": true,
-              "intensity": 0.5,
-              "kind": "joystick",
-              "position": [
-                {
-                  "height": 7,
-                  "size": "large",
-                  "width": 7,
-                  "x": 11,
-                  "y": 0
-                },
-                {
-                  "height": 7,
-                  "size": "medium",
-                  "width": 7,
-                  "x": 11,
-                  "y": 0
-                }
-              ]
             }
           ],
           "sceneID": "default"
         }
       ]
     },
-    "savedAt": 1535822952182
+    "savedAt": 1535944478291
   }
 ]

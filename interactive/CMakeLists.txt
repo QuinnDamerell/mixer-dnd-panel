@@ -23,10 +23,17 @@ add_library(interactive   STATIC
 
 add_executable(dnd-panel
         dndpanel/common.h
-		dndpanel/main.cpp
-        dndpanel/main.h)
+        dndpanel/main.cpp
+        dndpanel/main.h
+        dndpanel/logger.cpp
+        dndpanel/logger.h
+        dndpanel/config.cpp
+        dndpanel/config.h
+        dndpanel/panellogic.cpp
+        dndpanel/panellogic.h
+        )
 
-set(DND_INCLUDES interactive rapidjson/include)
+set(DND_INCLUDES interactive rapidjson/include interactive-cpp/source/)
 
 include_directories(dnd-panel ${DND_INCLUDES})
 
