@@ -158,6 +158,6 @@ function handleVideoResized (position) {
   overlay.style.width = `${player.width}px`;
   footer.style.left = `${player.left}px`;
   footer.style.width = `${player.width - 10}px`;
-  footer.style.height = `${dndFooterHeight - 10}px`;
+  footer.style.height = `${dndFooterHeight - 15}px`;
   footer.style.top = `${player.top + player.height}px`;
 }
