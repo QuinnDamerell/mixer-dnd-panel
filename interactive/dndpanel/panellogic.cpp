@@ -38,7 +38,8 @@ int PanelLogic::ExectueTick(high_clock::duration timeElipased)
         // Balance toward 0
         if (m_players[i] != 0)
         {
-            m_players[i] += (m_players[i] < 0) ? 5 : -5;
+            int newValue = (int)std::pow((double)std::abs(m_players[i]), 0.98);
+            m_players[i] = m_players[i] > 0 ? newValue : -newValue;
         }
     }
 
