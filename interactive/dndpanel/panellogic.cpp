@@ -41,6 +41,10 @@ int PanelLogic::ExectueTick(high_clock::duration timeElipased)
             int newValue = (int)std::pow((double)std::abs(m_players[i]), 0.98);
             m_players[i] = m_players[i] > 0 ? newValue : -newValue;
         }
+        if (std::abs(m_players[i]) < 5)
+        {
+            m_players[i] = 0;
+        }
     }
 
     // Build the json
