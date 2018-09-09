@@ -2,16 +2,118 @@
 
 #include "rapidjson/document.h"
 
+#include "internal/websocket.h"
+#include "internal/interactive_session.h"
+
 #include <windows.h>
 #include <shellapi.h>
 
 #include <iostream>
 #include <thread>
 
+#include <mutex>
+#include <shared_mutex>
+
+#include <queue>
+
 #define MIXER_DEBUG 1
 
 using namespace DnDPanel;
+using namespace mixer_internal;
 
+struct chat_session_internal
+{
+	chat_session_internal();
+
+	// Configuration
+	bool isReady;
+
+	// State
+	interactive_state state;
+	std::string authorization;
+	std::string versionId;
+	std::string shareCode;
+	bool shutdownRequested;
+	void* callerContext;
+	std::atomic<uint32_t> packetId;
+	int sequenceId;
+	long long serverTimeOffsetMs;
+	bool serverTimeOffsetCalculated;
+
+	// Server time offset
+	std::chrono::time_point<std::chrono::steady_clock, std::chrono::milliseconds> getTimeSent;
+	unsigned int getTimeRequestId;
+
+	// Cached data
+	std::shared_mutex scenesMutex;
+	rapidjson::Document scenesRoot;
+	bool scenesCached;
+	scenes_by_id scenes;
+	scenes_by_group scenesByGroup;
+	bool groupsCached;
+	controls_by_id controls;
+	participants_by_id participants;
+
+	// Event handlers
+	on_input onInput;
+	on_error onError;
+	on_state_changed onStateChanged;
+	on_participants_changed onParticipantsChanged;
+	on_control_changed onControlChanged;
+	on_transaction_complete onTransactionComplete;
+	on_unhandled_method onUnhandledMethod;
+
+	// Transactions that have been completed.
+	std::map<std::string, interactive_error> completedTransactions;
+
+	// Http
+	std::unique_ptr<http_client> http;
+	std::mutex httpMutex;
+
+	// Websocket
+	std::mutex websocketMutex;
+	std::unique_ptr<websocket> ws;
+	bool wsOpen;
+	// Websocket handlers
+	void handle_ws_open(const websocket& socket, const std::string& message);
+	void handle_ws_message(const websocket& socket, const std::string& message);
+	void handle_ws_close(const websocket& socket, unsigned short code, const std::string& message);
+
+	// Outgoing data
+	void run_outgoing_thread();
+	std::thread outgoingThread;
+	std::mutex outgoingMutex;
+	std::condition_variable outgoingCV;
+	std::queue<std::shared_ptr<interactive_event_internal>> outgoingEvents;
+	void enqueue_outgoing_event(std::shared_ptr<interactive_event_internal>&& ev);
+
+	// Incoming data
+	void run_incoming_thread();
+	std::thread incomingThread;
+	std::mutex incomingMutex;
+	interactive_event_queue incomingEvents;
+	reply_handlers_by_id replyHandlersById;
+	std::map<unsigned int, http_response_handler> httpResponseHandlers;
+	void enqueue_incoming_event(std::shared_ptr<interactive_event_internal>&& ev);
+
+	// Method handlers
+	method_handlers_by_method methodHandlers;
+};
+
+chat_session_internal::chat_session_internal()
+	: callerContext(nullptr), isReady(false), state(interactive_disconnected), shutdownRequested(false), packetId(0),
+	sequenceId(0), wsOpen(false), onInput(nullptr), onError(nullptr), onStateChanged(nullptr), onParticipantsChanged(nullptr),
+	onUnhandledMethod(nullptr), onControlChanged(nullptr), onTransactionComplete(nullptr), serverTimeOffsetMs(0), serverTimeOffsetCalculated(false), scenesCached(false), groupsCached(false),
+	getTimeRequestId(0xffffffff)
+{
+	scenesRoot.SetObject();
+}
+
+void Test() 
+{
+	chat_session_internal session;
+
+}
 int main()
 {
 #if MIXER_DEBUG
