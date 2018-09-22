@@ -1,119 +1,39 @@
 #include "main.h"
 
-#include "rapidjson/document.h"
-
-#include "internal/websocket.h"
-#include "internal/interactive_session.h"
-
 #include <windows.h>
 #include <shellapi.h>
 
 #include <iostream>
 #include <thread>
 
-#include <mutex>
-#include <shared_mutex>
-
-#include <queue>
+#include <stdint.h>
 
 #define MIXER_DEBUG 1
 
+#undef GetObject
+
+#include "rapidjson/filereadstream.h"
+#include "rapidjson/filewritestream.h"
+#include <rapidjson/writer.h>
+
+#include "chatutil.h"
+#include "chatbot.h"
+
 using namespace DnDPanel;
-using namespace mixer_internal;
+using namespace ChatUtil;
+using namespace ChatBot;
 
-struct chat_session_internal
+void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, DndConfigPtr config)
 {
-	chat_session_internal();
-
-	// Configuration
-	bool isReady;
-
-	// State
-	interactive_state state;
-	std::string authorization;
-	std::string versionId;
-	std::string shareCode;
-	bool shutdownRequested;
-	void* callerContext;
-	std::atomic<uint32_t> packetId;
-	int sequenceId;
-	long long serverTimeOffsetMs;
-	bool serverTimeOffsetCalculated;
-
-	// Server time offset
-	std::chrono::time_point<std::chrono::steady_clock, std::chrono::milliseconds> getTimeSent;
-	unsigned int getTimeRequestId;
-
-	// Cached data
-	std::shared_mutex scenesMutex;
-	rapidjson::Document scenesRoot;
-	bool scenesCached;
-	scenes_by_id scenes;
-	scenes_by_group scenesByGroup;
-	bool groupsCached;
-	controls_by_id controls;
-	participants_by_id participants;
-
-	// Event handlers
-	on_input onInput;
-	on_error onError;
-	on_state_changed onStateChanged;
-	on_participants_changed onParticipantsChanged;
-	on_control_changed onControlChanged;
-	on_transaction_complete onTransactionComplete;
-	on_unhandled_method onUnhandledMethod;
-
-	// Transactions that have been completed.
-	std::map<std::string, interactive_error> completedTransactions;
-
-	// Http
-	std::unique_ptr<http_client> http;
-	std::mutex httpMutex;
-
-	// Websocket
-	std::mutex websocketMutex;
-	std::unique_ptr<websocket> ws;
-	bool wsOpen;
-	// Websocket handlers
-	void handle_ws_open(const websocket& socket, const std::string& message);
-	void handle_ws_message(const websocket& socket, const std::string& message);
-	void handle_ws_close(const websocket& socket, unsigned short code, const std::string& message);
-
-	// Outgoing data
-	void run_outgoing_thread();
-	std::thread outgoingThread;
-	std::mutex outgoingMutex;
-	std::condition_variable outgoingCV;
-	std::queue<std::shared_ptr<interactive_event_internal>> outgoingEvents;
-	void enqueue_outgoing_event(std::shared_ptr<interactive_event_internal>&& ev);
-
-	// Incoming data
-	void run_incoming_thread();
-	std::thread incomingThread;
-	std::mutex incomingMutex;
-	interactive_event_queue incomingEvents;
-	reply_handlers_by_id replyHandlersById;
-	std::map<unsigned int, http_response_handler> httpResponseHandlers;
-	void enqueue_incoming_event(std::shared_ptr<interactive_event_internal>&& ev);
-
-	// Method handlers
-	method_handlers_by_method methodHandlers;
-};
-
-chat_session_internal::chat_session_internal()
-	: callerContext(nullptr), isReady(false), state(interactive_disconnected), shutdownRequested(false), packetId(0),
-	sequenceId(0), wsOpen(false), onInput(nullptr), onError(nullptr), onStateChanged(nullptr), onParticipantsChanged(nullptr),
-	onUnhandledMethod(nullptr), onControlChanged(nullptr), onTransactionComplete(nullptr), serverTimeOffsetMs(0), serverTimeOffsetCalculated(false), scenesCached(false), groupsCached(false),
-	getTimeRequestId(0xffffffff)
-{
-	scenesRoot.SetObject();
+	chatRunner->Run(auth, config);
 }
 
-void Test() 
+void runPanel(DndRunnerPtr interactiveRunner, AuthPtr auth, DndConfigPtr config)
 {
-	chat_session_internal session;
-
+	interactiveRunner->Run(auth, config);
 }
+
+
 int main()
 {
 #if MIXER_DEBUG
@@ -123,30 +43,130 @@ int main()
 	});
 #endif
 
-    DndRunnerPtr runner = std::make_shared<DndRunner>();
-    return runner->Run();
+	
+
+	// Setup the config
+	DndConfigPtr config = std::make_shared<DndConfig>();
+	int err = 0;
+	if ((err = config->Init()))
+	{
+		Logger::Error("Failed to read config.");
+		return err;
+	}
+
+	AuthPtr auth = std::make_shared<Auth>();
+
+	// Check auth
+	if ((err = auth->EnsureAuth(config)))
+	{
+		Logger::Error("Failed setup auth.");
+		return err;
+	}
+
+    DndRunnerPtr interactiveRunner = std::make_shared<DndRunner>();
+	ChatRunnerPtr chatRunner = std::make_shared<ChatRunner>();
+
+	std::thread chat(runChat, chatRunner, auth, config);
+	std::thread interactive(runPanel, interactiveRunner, auth, config);
+	
+	while (true)
+	{
+		//run forever
+	}
 }
 
-int DndRunner::Run()
+std::string userstatelocation = "userstate.json";
+
+void saveFile(rapidjson::Document& d)
 {
-    // Setup the config
-    m_config = std::make_shared<DndConfig>();
-    int err = 0;
-    if ((err = m_config->Init()))
-    {
-        Logger::Error("Failed to read config.");
-        return err;
-    }
+	FILE* fp = fopen(userstatelocation.c_str(), "wb"); // non-Windows use "w"
+	char writeBuffer[65536];
+	FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
+	Writer<FileWriteStream> writer(os);
+	d.Accept(writer);
+	fclose(fp);
+}
+
+void prepUserState(chat_session_internal* sessionInternal)
+{
+	FILE* fp = fopen(userstatelocation.c_str() , "rb"); // non-Windows use "r"
+	
+	if (fp == nullptr)
+	{
+		sessionInternal->usersState.SetObject();
+		return;
+	}
+
+	char readBuffer[65536];
+	FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+	sessionInternal->usersState.ParseStream(is);
+	fclose(fp);
+}
+
+int ChatRunner::Run(AuthPtr auth, DndConfigPtr config)
+{
+	int err = 0;
+
+	m_auth = auth;
+	m_config = config;
+
+	// Setup interactive
+	if ((err = chat_open_session(&m_session)))
+	{
+		Logger::Error("Failed to setup interactive!");
+		return err;
+	}
+
+	// Setup handlers
+	if ((err = SetupHandlers()))
+	{
+		Logger::Error("Failed to setup handlers");
+		return err;
+	}
+
+	// Connect
+	if ((err = chat_connect(m_session, m_auth->authToken.c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
+	{
+		Logger::Error("Failed to connect to interactive!");
+		return err;
+	}
+
+	// Run! (like this was a game loop)
+	high_clock::time_point lastTickRun = high_clock::now();
+	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
+	prepUserState(sessionInternal);
+	for (;;)
+	{
+		// Run interactive
+		if ((err = chat_run(m_session, 500)))
+		{
+			break;
+		}
+
+		// Run the update logic.
+		high_clock::time_point now = high_clock::now();
+		lastTickRun = now;
+
+		// Save the local state to disk
+		
+		saveFile(sessionInternal->usersState);
+
+		// Sleepy time.
+		std::this_thread::sleep_for(std::chrono::milliseconds(16));
+	}
+
+	return err;
+}
+
+int DndRunner::Run(AuthPtr auth, DndConfigPtr config)
+{
+	int err = 0;
+
+	m_auth = auth;
+	m_config = config;
 
     // Create our logic class.
     m_panelLogic = std::make_shared<PanelLogic>(GetSharedPtr<DndRunner>());
-
-    // Check auth
-    if((err = EnsureAuth()))
-    {
-        Logger::Error("Failed setup auth.");
-        return err;
-    }
 
     // Setup interactive
     if ((err = interactive_open_session(&m_session)))
@@ -163,7 +183,7 @@ int DndRunner::Run()
     }
 
     // Connect
-    if ((err = interactive_connect(m_session, m_authToken.c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
+    if ((err = interactive_connect(m_session, m_auth->authToken.c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
     {
         Logger::Error("Failed to connect to interactive!");
         return err;
@@ -198,90 +218,18 @@ int DndRunner::SendBraodcastUpdate(std::string& data)
     return interactive_queue_method(m_session, "broadcastEvent", fullJson.c_str(), nullptr);
 }
 
-int DndRunner::EnsureAuth()
-{
-    int err = 0;
-
-    // Try to use the old token if it exists.
-    do
-    {
-        // If we have a token, try to refresh.
-        if (m_config->RefreshToken.length() > 0)
-        {
-            char newToken[1024];
-            size_t newTokenLength = _countof(newToken);
-            err = interactive_auth_refresh_token(m_config->ClientId.c_str(), nullptr, m_config->RefreshToken.c_str(), newToken, &newTokenLength);
-            if (!err)
-            {
-                m_config->RefreshToken = std::string(newToken, newTokenLength);
-                break;
-            }
-            else
-            {
-                // If failed clear the token
-                m_config->RefreshToken = "";
-            }
-        }
-        else
-        {
-            // Start a clean auth
-            char shortCode[7];
-            size_t shortCodeLength = _countof(shortCode);
-            char shortCodeHandle[1024];
-            size_t shortCodeHandleLength = _countof(shortCodeHandle);
-            err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
-            if (err) return err;
-
-            // Pop the browser for the user to approve access.
-            std::string authUrl = std::string("https://www.mixer.com/go?code=") + shortCode;
-            ShellExecuteA(0, 0, authUrl.c_str(), nullptr, nullptr, SW_SHOW);
-
-            // Wait for OAuth token response.
-            char refreshTokenBuffer[1024];
-            size_t refreshTokenLength = _countof(refreshTokenBuffer);
-            err = interactive_auth_wait_short_code(CLIENT_ID, nullptr, shortCodeHandle, refreshTokenBuffer, &refreshTokenLength);
-            if (err)
-            {
-                if (MIXER_ERROR_TIMED_OUT == err)
-                {
-                    std::cout << "Authorization timed out, user did not approve access within the time limit." << std::endl;
-                }
-                else if (MIXER_ERROR_AUTH_DENIED == err)
-                {
-                    std::cout << "User denied access." << std::endl;
-                }
-
-                return err;
-            }
-
-            // Cache the refresh token
-            m_config->RefreshToken = std::string(refreshTokenBuffer, refreshTokenLength);
-            break;
-        }
-    } while (m_config->RefreshToken.length() == 0);
-
-    // Write the config.
-    m_config->Write();
-
-    // Extract the authorization header from the refresh token.
-    char authBuffer[1024];
-    size_t authBufferLength = _countof(authBuffer);
-    err = interactive_auth_parse_refresh_token(m_config->RefreshToken.c_str(), authBuffer, &authBufferLength);
-    if (err)
-    {
-        return err;
-    }
-
-    // Success!
-    m_authToken = std::string(authBuffer, authBufferLength);
-    return 0;
-}
-
 void DndRunner::ParticipantsChangedHandler(interactive_participant_action action, const interactive_participant* participant)
 {
     std::stringstream ss;
     ss << "User [" << participant->userId << "] " << std::string(participant->userName, participant->usernameLength) << (action == interactive_participant_action::participant_join ? " joined " : " left ") << "\n";
     Logger::Info(ss.str());
+}
+
+void ChatRunner::ParticipantsChangedHandler(chat_participant_action action, const chat_participant* participant)
+{
+	std::stringstream ss;
+	ss << "User [" << participant->userId << "] " << std::string(participant->userName, participant->usernameLength) << (action == chat_participant_action::participant_join_c ? " joined " : " left ") << "\n";
+	Logger::Info(ss.str());
 }
 
 void DndRunner::ErrorHandler(int errorCode, const char* errorMessage, size_t errorMessageLength)
@@ -344,4 +292,88 @@ int DndRunner::SetupHandlers()
     if (err) return err;
 
     return err;
+}
+
+int chat_set_session_context(chat_session session, void* context)
+{
+	if (nullptr == session)
+	{
+		return MIXER_ERROR_INVALID_POINTER;
+	}
+
+	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
+	sessionInternal->callerContext = context;
+
+	return MIXER_OK;
+}
+
+int chat_set_participants_changed_handler(chat_session session, on_participants_changed_c onParticipantsChanged)
+{
+	if (nullptr == session)
+	{
+		return MIXER_ERROR_INVALID_POINTER;
+	}
+
+	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
+	sessionInternal->onParticipantsChanged = onParticipantsChanged;
+
+	return MIXER_OK;
+}
+
+// Handler registration
+int chat_set_error_handler(chat_session session, on_error onError)
+{
+	if (nullptr == session)
+	{
+		return MIXER_ERROR_INVALID_POINTER;
+	}
+
+	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
+	sessionInternal->onError = onError;
+
+	return MIXER_OK;
+}
+
+void participants_changed_handler_c(void* context, chat_session session, chat_participant_action action, const chat_participant* participant)
+{
+	if (context)
+	{
+		ChatRunner* runner = (ChatRunner*)context;
+		runner->ParticipantsChangedHandler(action, participant);
+	}
+}
+
+int chat_set_input_handler(chat_session session, on_input onInput)
+{
+	if (nullptr == session)
+	{
+		return MIXER_ERROR_INVALID_POINTER;
+	}
+
+	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
+	sessionInternal->onInput = onInput;
+
+	return MIXER_OK;
+}
+
+int ChatRunner::SetupHandlers()
+{
+	int err = 0;
+
+	// Set this object as the context.
+	err = chat_set_session_context(m_session, this);
+	if (err) return err;
+
+	// Register a callback for errors.
+	err = chat_set_error_handler(m_session, handle_error);
+	if (err) return err;
+
+	err = chat_set_participants_changed_handler(m_session, participants_changed_handler_c);
+	if (err) return err;
+
+	// Register a callback for button presses.
+	err = chat_set_input_handler(m_session, input_handler);
+	if (err) return err;
+
+	return err;
 }

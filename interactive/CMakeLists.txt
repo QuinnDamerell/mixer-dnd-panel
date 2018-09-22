@@ -31,6 +31,10 @@ add_executable(dnd-panel
         dndpanel/config.h
         dndpanel/panellogic.cpp
         dndpanel/panellogic.h
+		dndpanel/chatutil.cpp
+		dndpanel/chatutil.h
+		dndpanel/chatbot.cpp
+		dndpanel/chatbot.h
         )
 
 set(DND_INCLUDES interactive rapidjson/include interactive-cpp/source/)
