@@ -1,4 +1,0 @@
-P:/mixer-dnd-panel/interactive/CMakeFiles/interactive.dir
-P:/mixer-dnd-panel/interactive/CMakeFiles/dnd-panel.dir
-P:/mixer-dnd-panel/interactive/CMakeFiles/ALL_BUILD.dir
-P:/mixer-dnd-panel/interactive/CMakeFiles/ZERO_CHECK.dir
