@@ -48,3 +48,13 @@ jspm_packages
 /cdk/DnDPanel/build/*
 /interactive/build_win64/*
 /.vscode/settings.json
+/interactive/.vs/*
+/interactive/Debug/*
+/interactive/Win32/*
+/interactive/userstate.json
+/interactive/dnd-panel.dir/*
+/interactive/interactive.dir/*
+/interactive/CMakeFiles/*
+/interactive/CMakeCache.txt
+
+

@@ -49,6 +49,7 @@ namespace DnDPanel
                 break;
             }
             buff << msg;
+			buff << "\n";
             buff.str();
             std::cout << buff.str();
         }
