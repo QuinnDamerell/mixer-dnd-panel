@@ -7,16 +7,18 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
+
 
 using namespace DnDPanel;
 using namespace rapidjson;
 
 #define REFRESH_TOKEN_TOKEN "RefreshToken"
 
-int DndConfig::Init()
+int DndConfig::Init(std::string configFileLocation)
 {
     std::ifstream configFile;
-    configFile.open("dndpanelconfig.json");
+    configFile.open(configFileLocation);
     if (!configFile.is_open())
     {
         Logger::Info("No config file found, creating a new config.");

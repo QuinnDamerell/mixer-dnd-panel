@@ -151,7 +151,7 @@ namespace ChatUtil
 		public SharedFromThis
 	{
 	public:
-		int EnsureAuth(DnDPanel::DndConfigPtr);
+		int EnsureAuth(DnDPanel::DndConfigPtr, bool);
 		std::string authToken;
 	};
 

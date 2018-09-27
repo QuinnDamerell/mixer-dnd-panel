@@ -33,16 +33,39 @@ void ChatBot::verifyUser(chat_session_internal& session, std::string Name)
 	}
 }
 
-void ChatBot::incrementXp(chat_session_internal& session, std::string Name)
+void ChatBot::incrementXp(chat_session_internal& session, std::string Name, int xpGain)
 {
 	verifyUser(session, Name);
 	for (auto& v : session.usersState["Users"].GetArray())
 	{
 		if (v["Name"].GetString() == Name)
 		{
-			v["XP"] = v["XP"].GetInt() + 1;
+			v["XP"] = v["XP"].GetInt() + xpGain;
+			return;
 		}
 	}
+}
+
+void ChatBot::sendMessage(chat_session_internal& session, std::string message)
+{
+	std::shared_ptr<rapidjson::Document> doc(std::make_shared<rapidjson::Document>());
+	doc->SetObject();
+	rapidjson::Document::AllocatorType& allocator = doc->GetAllocator();
+
+	
+	doc->AddMember("type", "method", allocator);
+	doc->AddMember("method", "msg", allocator);
+	Value a(kArrayType);
+	a.PushBack("Hello World!", allocator);
+	doc->AddMember("arguments", a, allocator);
+	doc->AddMember("id", 2, allocator);
+
+	
+	DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*doc));
+	std::shared_ptr<rpc_method_event> methodEvent = std::make_shared<rpc_method_event>(std::move(doc));
+	std::unique_lock<std::mutex> queueLock(session.outgoingMutex);
+	session.outgoingEvents.emplace(methodEvent);
+	session.outgoingCV.notify_one();
 }
 
 // The events that matter
@@ -50,7 +73,14 @@ int ChatBot::handle_chat_message(chat_session_internal& session, rapidjson::Docu
 {
 	(doc);
 	std::string username = doc["data"]["user_name"].GetString();
-	incrementXp(session, username);
+	incrementXp(session, username, 1);
+
+	for (auto& v : doc["data"]["message"]["message"].GetArray())
+	{
+		DnDPanel::Logger::Info(std::string("found text: ") + v.GetObject()["text"].GetString());
+	}
+
+	sendMessage(session, "test message");
 	return 0;
 }
 

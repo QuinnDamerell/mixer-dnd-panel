@@ -46,9 +46,16 @@ int main()
 	
 
 	// Setup the config
-	DndConfigPtr config = std::make_shared<DndConfig>();
+	DndConfigPtr config_interactive = std::make_shared<DndConfig>();
+	DndConfigPtr config_chat = std::make_shared<DndConfig>();
 	int err = 0;
-	if ((err = config->Init()))
+	if ((err = config_interactive->Init("dndpanelconfig.json")))
+	{
+		Logger::Error("Failed to read config.");
+		return err;
+	}
+
+	if ((err = config_chat->Init("chatconfig.json")))
 	{
 		Logger::Error("Failed to read config.");
 		return err;
@@ -57,7 +64,14 @@ int main()
 	AuthPtr auth = std::make_shared<Auth>();
 
 	// Check auth
-	if ((err = auth->EnsureAuth(config)))
+	if ((err = auth->EnsureAuth(config_interactive, true)))
+	{
+		Logger::Error("Failed setup auth.");
+		return err;
+	}
+
+	// Check auth
+	if ((err = auth->EnsureAuth(config_chat, false)))
 	{
 		Logger::Error("Failed setup auth.");
 		return err;
@@ -66,8 +80,8 @@ int main()
     DndRunnerPtr interactiveRunner = std::make_shared<DndRunner>();
 	ChatRunnerPtr chatRunner = std::make_shared<ChatRunner>();
 
-	std::thread chat(runChat, chatRunner, auth, config);
-	std::thread interactive(runPanel, interactiveRunner, auth, config);
+	std::thread chat(runChat, chatRunner, auth, config_chat);
+	std::thread interactive(runPanel, interactiveRunner, auth, config_interactive);
 	
 	while (true)
 	{
@@ -96,11 +110,17 @@ void prepUserState(chat_session_internal* sessionInternal)
 		sessionInternal->usersState.SetObject();
 		return;
 	}
+	
 
 	char readBuffer[65536];
 	FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 	sessionInternal->usersState.ParseStream(is);
 	fclose(fp);
+
+	if (sessionInternal->usersState.IsNull())
+	{
+		sessionInternal->usersState.SetObject();
+	}
 }
 
 int ChatRunner::Run(AuthPtr auth, DndConfigPtr config)
@@ -109,14 +129,18 @@ int ChatRunner::Run(AuthPtr auth, DndConfigPtr config)
 
 	m_auth = auth;
 	m_config = config;
+	
+	
 
+	
 	// Setup interactive
 	if ((err = chat_open_session(&m_session)))
 	{
 		Logger::Error("Failed to setup interactive!");
 		return err;
 	}
-
+	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
+	sessionInternal->m_auth = auth;
 	// Setup handlers
 	if ((err = SetupHandlers()))
 	{
@@ -133,7 +157,8 @@ int ChatRunner::Run(AuthPtr auth, DndConfigPtr config)
 
 	// Run! (like this was a game loop)
 	high_clock::time_point lastTickRun = high_clock::now();
-	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
+	
+	
 	prepUserState(sessionInternal);
 	for (;;)
 	{

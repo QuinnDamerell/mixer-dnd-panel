@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include <string>
 
 #define CLIENT_ID		"83068dc323fd2e16eddfe89970e548a277c46e047a08d0dd"
 #define INTERACTIVE_ID	"282246"
@@ -12,7 +13,7 @@ namespace DnDPanel
     class DndConfig
     {
     public:
-        int Init();
+        int Init(std::string);
         int Write();
 
         std::string ClientId = CLIENT_ID;

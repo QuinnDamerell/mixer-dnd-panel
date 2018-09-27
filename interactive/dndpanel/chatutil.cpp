@@ -22,7 +22,7 @@ chat_session_internal::chat_session_internal()
 
 ChatUtil::chat_event_internal::chat_event_internal(chat_event_type type) : type(type) {}
 
-int Auth::EnsureAuth(DnDPanel::DndConfigPtr config)
+int Auth::EnsureAuth(DnDPanel::DndConfigPtr config, bool interactive)
 {
 	int err = 0;
 
@@ -55,7 +55,7 @@ int Auth::EnsureAuth(DnDPanel::DndConfigPtr config)
 			size_t shortCodeLength = _countof(shortCode);
 			char shortCodeHandle[1024];
 			size_t shortCodeHandleLength = _countof(shortCodeHandle);
-			err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+			err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength, interactive);
 			if (err) return err;
 
 			// Pop the browser for the user to approve access.
@@ -615,14 +615,47 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 	Value channelId(248987);
 	Value userId(354879);
 
+	mixer_internal::http_response response;
+	static std::string hostsUri = "https://mixer.com/api/v1/chats/248987";
+	mixer_internal::http_headers headers;
+	headers.emplace("Content-Type", "application/json");
+	headers.emplace("Authorization", session.m_auth->authToken);
+
+	// Critical Section: Http request.
+	{
+		std::unique_lock<std::mutex> httpLock(session.httpMutex);
+		RETURN_IF_FAILED(session.http->make_request(hostsUri, "GET", &headers, "", response));
+	}
+
+	if (200 != response.statusCode)
+	{
+		std::string errorMessage = "Failed to acquire chat access.";
+		DnDPanel::Logger::Error(std::to_string(response.statusCode) + " " + errorMessage);
+		session.enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_NO_HOST, std::move(errorMessage))));
+
+		return MIXER_ERROR_NO_HOST;
+	}
+
+	rapidjson::Document resultDoc;
+	if (resultDoc.Parse(response.body.c_str()).HasParseError())
+	{
+		return MIXER_ERROR_JSON_PARSE;
+	}
+
+
+	DnDPanel::Logger::Info(std::string("auth key:") + session.m_auth->authToken.c_str());
+
 	params.PushBack(channelId, allocator);
-	//params.PushBack(userId, allocator);
-	//params.PushBack("7fmxpbfa7LkJ9cMU", allocator);
-	DnDPanel::Logger::Info(std::string("arguments: ") + mixer_internal::jsonStringify(params));
+	params.PushBack(userId, allocator);
+	//params.PushBack("7kT3CkMJVEiLTval", allocator);
+	Value auth(session.m_auth->authToken.c_str(), allocator);
+	params.PushBack(auth, allocator);
+	DnDPanel::Logger::Info(std::string("arguments for channel sign on: ") + mixer_internal::jsonStringify(params));
 	mydoc->AddMember("arguments", params, allocator);
 	mydoc->AddMember("id", "0", allocator);
+	
 
-	DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*mydoc));
+	DnDPanel::Logger::Info(std::string("Queueing method for sign on: ") + mixer_internal::jsonStringify(*mydoc));
 
 
 	std::string packet = mixer_internal::jsonStringify(*mydoc);
@@ -894,32 +927,36 @@ void ChatUtil::chat_session_internal::handle_ws_message(const mixer_internal::we
 		else if (0 == type.compare(RPC_REPLY))
 		{
 			std::string mj = mixer_internal::jsonStringify(*messageJson);
-			unsigned int id = std::stoi((*messageJson)[RPC_ID].GetString());
-			method_handler_c handlerFunc = nullptr;
-			bool executeImmediately = false;
-			// Critical Section: Check if there is a registered reply handler and if it's marked for immediate execution.
+			if ((*messageJson)[RPC_ID].IsString())
 			{
-				std::unique_lock<std::mutex> incomingLock(this->incomingMutex);
-				auto replyHandlerItr = this->replyHandlersById.find(id);
-				if (replyHandlerItr != this->replyHandlersById.end())
+				unsigned int id = std::stoi((*messageJson)[RPC_ID].GetString());
+				method_handler_c handlerFunc = nullptr;
+				bool executeImmediately = false;
+				// Critical Section: Check if there is a registered reply handler and if it's marked for immediate execution.
 				{
-					executeImmediately = replyHandlerItr->second.first;
-					handlerFunc.swap(replyHandlerItr->second.second);
-					this->replyHandlersById.erase(replyHandlerItr);
+					std::unique_lock<std::mutex> incomingLock(this->incomingMutex);
+					auto replyHandlerItr = this->replyHandlersById.find(id);
+					if (replyHandlerItr != this->replyHandlersById.end())
+					{
+						executeImmediately = replyHandlerItr->second.first;
+						handlerFunc.swap(replyHandlerItr->second.second);
+						this->replyHandlersById.erase(replyHandlerItr);
+					}
 				}
-			}
 
-			if (nullptr != handlerFunc)
-			{
-				if (executeImmediately)
+				if (nullptr != handlerFunc)
 				{
-					handlerFunc(*this, *messageJson);
-				}
-				else
-				{
-					this->enqueue_incoming_event(std::make_shared<rpc_reply_event>(id, std::move(messageJson), handlerFunc));
+					if (executeImmediately)
+					{
+						handlerFunc(*this, *messageJson);
+					}
+					else
+					{
+						this->enqueue_incoming_event(std::make_shared<rpc_reply_event>(id, std::move(messageJson), handlerFunc));
+					}
 				}
 			}
+			
 		}
 		else if (0 == type.compare(RPC_EVENT))
 		{
