@@ -39,7 +39,7 @@ int chat_auth_get_short_code(const char* clientId, const char* clientSecret, cha
 	std::string jsonBody;
 	if (nullptr == clientSecret)
 	{
-		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"scope\": \"chat:chat\" }";
+		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"scope\": \"chat:chat chat:connect\" }";
 	}
 	else
 	{
@@ -680,33 +680,6 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 	Value channelId(248987);
 	Value userId(354879);
 
-	mixer_internal::http_response response1;
-	static std::string hostsUri1 = "https://mixer.com/api/v1/chats/248987";
-	mixer_internal::http_headers headers1;
-	headers1.emplace("Content-Type", "application/json");
-	headers1.emplace("Authorization", session.m_auth->authToken);
-
-	// Critical Section: Http request.
-	{
-		std::unique_lock<std::mutex> httpLock(session.httpMutex);
-		RETURN_IF_FAILED(session.http->make_request(hostsUri1, "GET", &headers1, "", response1));
-	}
-
-	if (200 != response1.statusCode)
-	{
-		std::string errorMessage = "Failed to acquire chat access.";
-		DnDPanel::Logger::Error(std::to_string(response1.statusCode) + " " + errorMessage);
-		session.enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_NO_HOST, std::move(errorMessage))));
-
-		return MIXER_ERROR_NO_HOST;
-	}
-
-	rapidjson::Document resultDoc;
-	if (resultDoc.Parse(response1.body.c_str()).HasParseError())
-	{
-		return MIXER_ERROR_JSON_PARSE;
-	}
-
 	mixer_internal::http_response response;
 	static std::string hostsUri = "https://mixer.com/api/v1/chats/248987";
 	mixer_internal::http_headers headers;
@@ -728,21 +701,22 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 		return MIXER_ERROR_NO_HOST;
 	}
 
-	rapidjson::Document resultDoc1;
-	if (resultDoc1.Parse(response.body.c_str()).HasParseError())
+	rapidjson::Document resultDoc;
+	if (resultDoc.Parse(response.body.c_str()).HasParseError())
 	{
 		return MIXER_ERROR_JSON_PARSE;
 	}
 
+	Value auth(resultDoc["authkey"].GetString(), allocator);
 
-	DnDPanel::Logger::Info(std::string("auth key:") + session.m_auth->authToken.c_str());
+	DnDPanel::Logger::Info(std::string("auth key:") + resultDoc["authkey"].GetString());
 
 	params.PushBack(channelId, allocator);
 	params.PushBack(userId, allocator);
-	//params.PushBack("7kT3CkMJVEiLTval", allocator);
-	Value auth(session.m_auth->authToken.c_str(), allocator);
 	params.PushBack(auth, allocator);
+
 	DnDPanel::Logger::Info(std::string("arguments for channel sign on: ") + mixer_internal::jsonStringify(params));
+
 	mydoc->AddMember("arguments", params, allocator);
 	mydoc->AddMember("id", "0", allocator);
 	
