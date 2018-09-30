@@ -22,6 +22,64 @@ chat_session_internal::chat_session_internal()
 
 ChatUtil::chat_event_internal::chat_event_internal(chat_event_type type) : type(type) {}
 
+#define JSON_CODE "code"
+#define JSON_HANDLE "handle"
+
+int chat_auth_get_short_code(const char* clientId, const char* clientSecret, char* shortCode, size_t* shortCodeLength, char* shortCodeHandle, size_t* shortCodeHandleLength)
+{
+	if (nullptr == clientId || nullptr == shortCode || nullptr == shortCodeLength || nullptr == shortCodeHandle || nullptr == shortCodeHandleLength)
+	{
+		return MIXER_ERROR_INVALID_POINTER;
+	}
+
+	mixer_internal::http_response response;
+	std::string oauthCodeUrl = "https://mixer.com/api/v1/oauth/shortcode";
+
+	// Construct the json body
+	std::string jsonBody;
+	if (nullptr == clientSecret)
+	{
+		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"scope\": \"chat:chat\" }";
+	}
+	else
+	{
+		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"client_secret\": \"" + clientSecret + "\", \"scope\": \"interactive:robot:self\" }";
+	}
+
+	std::unique_ptr<mixer_internal::http_client> client = mixer_internal::http_factory::make_http_client();
+	RETURN_IF_FAILED(client->make_request(oauthCodeUrl, "POST", nullptr, jsonBody, response));
+	if (200 != response.statusCode)
+	{
+		return response.statusCode;
+	}
+
+	rapidjson::Document doc;
+	if (doc.Parse(response.body.c_str()).HasParseError())
+	{
+		return MIXER_ERROR_JSON_PARSE;
+	}
+
+	std::string code = doc[JSON_CODE].GetString();
+	std::string handle = doc[JSON_HANDLE].GetString();
+
+	if (*shortCodeLength < code.length() + 1 ||
+		*shortCodeHandleLength < handle.length() + 1)
+	{
+		*shortCodeLength = code.length() + 1;
+		*shortCodeHandleLength = handle.length() + 1;
+		return MIXER_ERROR_BUFFER_SIZE;
+	}
+
+	memcpy(shortCode, code.c_str(), code.length());
+	shortCode[code.length()] = 0;
+	*shortCodeLength = code.length() + 1;
+
+	memcpy(shortCodeHandle, handle.c_str(), handle.length());
+	shortCodeHandle[handle.length()] = 0;
+	*shortCodeHandleLength = handle.length() + 1;
+	return MIXER_OK;
+}
+
 int Auth::EnsureAuth(DnDPanel::DndConfigPtr config, bool interactive)
 {
 	int err = 0;
@@ -55,7 +113,14 @@ int Auth::EnsureAuth(DnDPanel::DndConfigPtr config, bool interactive)
 			size_t shortCodeLength = _countof(shortCode);
 			char shortCodeHandle[1024];
 			size_t shortCodeHandleLength = _countof(shortCodeHandle);
-			err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength, interactive);
+			if (interactive)
+			{
+				err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+			}
+			else
+			{
+				err = chat_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+			}
 			if (err) return err;
 
 			// Pop the browser for the user to approve access.
@@ -615,6 +680,33 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 	Value channelId(248987);
 	Value userId(354879);
 
+	mixer_internal::http_response response1;
+	static std::string hostsUri1 = "https://mixer.com/api/v1/chats/248987";
+	mixer_internal::http_headers headers1;
+	headers1.emplace("Content-Type", "application/json");
+	headers1.emplace("Authorization", session.m_auth->authToken);
+
+	// Critical Section: Http request.
+	{
+		std::unique_lock<std::mutex> httpLock(session.httpMutex);
+		RETURN_IF_FAILED(session.http->make_request(hostsUri1, "GET", &headers1, "", response1));
+	}
+
+	if (200 != response1.statusCode)
+	{
+		std::string errorMessage = "Failed to acquire chat access.";
+		DnDPanel::Logger::Error(std::to_string(response1.statusCode) + " " + errorMessage);
+		session.enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_NO_HOST, std::move(errorMessage))));
+
+		return MIXER_ERROR_NO_HOST;
+	}
+
+	rapidjson::Document resultDoc;
+	if (resultDoc.Parse(response1.body.c_str()).HasParseError())
+	{
+		return MIXER_ERROR_JSON_PARSE;
+	}
+
 	mixer_internal::http_response response;
 	static std::string hostsUri = "https://mixer.com/api/v1/chats/248987";
 	mixer_internal::http_headers headers;
@@ -636,8 +728,8 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 		return MIXER_ERROR_NO_HOST;
 	}
 
-	rapidjson::Document resultDoc;
-	if (resultDoc.Parse(response.body.c_str()).HasParseError())
+	rapidjson::Document resultDoc1;
+	if (resultDoc1.Parse(response.body.c_str()).HasParseError())
 	{
 		return MIXER_ERROR_JSON_PARSE;
 	}
