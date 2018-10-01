@@ -46,6 +46,7 @@ void ChatBot::incrementXp(chat_session_internal& session, std::string Name, int 
 	}
 }
 
+int message_id = 1000;
 void ChatBot::sendMessage(chat_session_internal& session, std::string message)
 {
 	std::shared_ptr<rapidjson::Document> doc(std::make_shared<rapidjson::Document>());
@@ -56,9 +57,11 @@ void ChatBot::sendMessage(chat_session_internal& session, std::string message)
 	doc->AddMember("type", "method", allocator);
 	doc->AddMember("method", "msg", allocator);
 	Value a(kArrayType);
-	a.PushBack("Hello World!", allocator);
+	Value chatMessage(message, allocator);
+	a.PushBack(chatMessage, allocator);
 	doc->AddMember("arguments", a, allocator);
-	doc->AddMember("id", 2, allocator);
+	doc->AddMember("id", message_id, allocator);
+	message_id++;
 
 	
 	DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*doc));
@@ -77,10 +80,16 @@ int ChatBot::handle_chat_message(chat_session_internal& session, rapidjson::Docu
 
 	for (auto& v : doc["data"]["message"]["message"].GetArray())
 	{
-		DnDPanel::Logger::Info(std::string("found text: ") + v.GetObject()["text"].GetString());
+		std::string found_text = v.GetObject()["text"].GetString();
+
+		if (found_text == "!echo")
+		{
+			sendMessage(session, "Echo echo echo echo echo");
+		}
+
 	}
 
-	sendMessage(session, "test message");
+	
 	return 0;
 }
 

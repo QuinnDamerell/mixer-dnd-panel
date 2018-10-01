@@ -81,7 +81,7 @@ int main()
 	ChatRunnerPtr chatRunner = std::make_shared<ChatRunner>();
 
 	std::thread chat(runChat, chatRunner, auth, config_chat);
-	std::thread interactive(runPanel, interactiveRunner, auth, config_interactive);
+	//std::thread interactive(runPanel, interactiveRunner, auth, config_interactive);
 	
 	while (true)
 	{
