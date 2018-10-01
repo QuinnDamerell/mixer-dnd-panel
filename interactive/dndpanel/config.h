@@ -20,5 +20,20 @@ namespace DnDPanel
         std::string InteractiveId = INTERACTIVE_ID;
         std::string ShareCode = SHARE_CODE;
         std::string RefreshToken;
+		std::string configFileLocation;
     };
+
+	DECLARE_SMARTPOINTER(ChatConfig);
+	class ChatConfig
+	{
+	public:
+		int Init(std::string);
+		int Write();
+
+		std::string ClientId = CLIENT_ID;
+        std::string InteractiveId = INTERACTIVE_ID;
+        std::string ShareCode = SHARE_CODE;
+		std::string RefreshToken;
+		std::string configFileLocation;
+	};
 }

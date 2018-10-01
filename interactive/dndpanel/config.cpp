@@ -15,8 +15,10 @@ using namespace rapidjson;
 
 #define REFRESH_TOKEN_TOKEN "RefreshToken"
 
-int DndConfig::Init(std::string configFileLocation)
+int DndConfig::Init(std::string configFileLoc)
 {
+	configFileLocation = configFileLoc;
+
     std::ifstream configFile;
     configFile.open(configFileLocation);
     if (!configFile.is_open())
@@ -55,11 +57,61 @@ int DndConfig::Write()
     }
 
     // Write to the file.
-    std::ofstream ofs("dndpanelconfig.json");
+    std::ofstream ofs(configFileLocation);
     OStreamWrapper osw(ofs);
     Writer<OStreamWrapper> writer(osw);
     d.Accept(writer);
 
     return 0;
+}
+
+int ChatConfig::Init(std::string configFileLoc)
+{
+	configFileLocation = configFileLoc;
+
+	std::ifstream configFile;
+	configFile.open(configFileLocation);
+	if (!configFile.is_open())
+	{
+		Logger::Info("No chat config file found, creating a new chat config.");
+		return 0;
+	}
+
+	IStreamWrapper isw(configFile);
+	Document d;
+	d.ParseStream(isw);
+
+	if (!d.IsObject())
+	{
+		return 1;
+	}
+
+	// Grab the refresh token
+	if (d.HasMember(REFRESH_TOKEN_TOKEN) && d[REFRESH_TOKEN_TOKEN].IsString())
+	{
+		RefreshToken = d[REFRESH_TOKEN_TOKEN].GetString();
+	}
+
+	return 0;
+}
+
+int ChatConfig::Write()
+{
+	// Build the json.
+	Document d;
+	d.SetObject();
+	{
+		Value v;
+		v.SetString(RefreshToken, d.GetAllocator());
+		d.AddMember(REFRESH_TOKEN_TOKEN, v, d.GetAllocator());
+	}
+
+	// Write to the file.
+	std::ofstream ofs(configFileLocation);
+	OStreamWrapper osw(ofs);
+	Writer<OStreamWrapper> writer(osw);
+	d.Accept(writer);
+
+	return 0;
 }
 

@@ -64,7 +64,7 @@ void ChatBot::sendMessage(chat_session_internal& session, std::string message)
 	message_id++;
 
 	
-	DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*doc));
+	//DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*doc));
 	std::shared_ptr<rpc_method_event> methodEvent = std::make_shared<rpc_method_event>(std::move(doc));
 	std::unique_lock<std::mutex> queueLock(session.outgoingMutex);
 	session.outgoingEvents.emplace(methodEvent);

@@ -23,7 +23,7 @@ using namespace DnDPanel;
 using namespace ChatUtil;
 using namespace ChatBot;
 
-void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, DndConfigPtr config)
+void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, ChatConfigPtr config)
 {
 	chatRunner->Run(auth, config);
 }
@@ -39,7 +39,7 @@ int main()
 #if MIXER_DEBUG
 	interactive_config_debug(interactive_debug_trace, [](const interactive_debug_level dbgMsgType, const char* dbgMsg, size_t dbgMsgSize)
 	{
-		std::cout << dbgMsg << std::endl;
+		//std::cout << dbgMsg << std::endl;
 	});
 #endif
 
@@ -47,7 +47,7 @@ int main()
 
 	// Setup the config
 	DndConfigPtr config_interactive = std::make_shared<DndConfig>();
-	DndConfigPtr config_chat = std::make_shared<DndConfig>();
+	ChatConfigPtr config_chat = std::make_shared<ChatConfig>();
 	int err = 0;
 	if ((err = config_interactive->Init("dndpanelconfig.json")))
 	{
@@ -61,17 +61,18 @@ int main()
 		return err;
 	}
 
-	AuthPtr auth = std::make_shared<Auth>();
+	AuthPtr interactiveAuth = std::make_shared<Auth>();
+	AuthPtr chatAuth = std::make_shared<Auth>();
 
 	// Check auth
-	if ((err = auth->EnsureAuth(config_interactive, true)))
+	if ((err = interactiveAuth->EnsureAuth(config_interactive)))
 	{
 		Logger::Error("Failed setup auth.");
 		return err;
 	}
 
 	// Check auth
-	if ((err = auth->EnsureAuth(config_chat, false)))
+	if ((err = chatAuth->EnsureAuth(config_chat)))
 	{
 		Logger::Error("Failed setup auth.");
 		return err;
@@ -80,8 +81,8 @@ int main()
     DndRunnerPtr interactiveRunner = std::make_shared<DndRunner>();
 	ChatRunnerPtr chatRunner = std::make_shared<ChatRunner>();
 
-	std::thread chat(runChat, chatRunner, auth, config_chat);
-	//std::thread interactive(runPanel, interactiveRunner, auth, config_interactive);
+	std::thread chat(runChat, chatRunner, chatAuth, config_chat);
+	std::thread interactive(runPanel, interactiveRunner, interactiveAuth, config_interactive);
 	
 	while (true)
 	{
@@ -123,7 +124,7 @@ void prepUserState(chat_session_internal* sessionInternal)
 	}
 }
 
-int ChatRunner::Run(AuthPtr auth, DndConfigPtr config)
+int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config)
 {
 	int err = 0;
 

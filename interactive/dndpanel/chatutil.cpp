@@ -80,7 +80,7 @@ int chat_auth_get_short_code(const char* clientId, const char* clientSecret, cha
 	return MIXER_OK;
 }
 
-int Auth::EnsureAuth(DnDPanel::DndConfigPtr config, bool interactive)
+int Auth::EnsureAuth(DnDPanel::DndConfigPtr config)
 {
 	int err = 0;
 
@@ -113,14 +113,90 @@ int Auth::EnsureAuth(DnDPanel::DndConfigPtr config, bool interactive)
 			size_t shortCodeLength = _countof(shortCode);
 			char shortCodeHandle[1024];
 			size_t shortCodeHandleLength = _countof(shortCodeHandle);
-			if (interactive)
+			err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+			
+			if (err) return err;
+
+			// Pop the browser for the user to approve access.
+			std::string authUrl = std::string("https://www.mixer.com/go?code=") + shortCode;
+			ShellExecuteA(0, 0, authUrl.c_str(), nullptr, nullptr, SW_SHOW);
+
+			// Wait for OAuth token response.
+			char refreshTokenBuffer[1024];
+			size_t refreshTokenLength = _countof(refreshTokenBuffer);
+			err = interactive_auth_wait_short_code(CLIENT_ID, nullptr, shortCodeHandle, refreshTokenBuffer, &refreshTokenLength);
+			if (err)
 			{
-				err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+				if (MIXER_ERROR_TIMED_OUT == err)
+				{
+					std::cout << "Authorization timed out, user did not approve access within the time limit." << std::endl;
+				}
+				else if (MIXER_ERROR_AUTH_DENIED == err)
+				{
+					std::cout << "User denied access." << std::endl;
+				}
+
+				return err;
+			}
+
+			// Cache the refresh token
+			config->RefreshToken = std::string(refreshTokenBuffer, refreshTokenLength);
+			break;
+		}
+	} while (config->RefreshToken.length() == 0);
+
+	// Write the config.
+	config->Write();
+
+	// Extract the authorization header from the refresh token.
+	char authBuffer[1024];
+	size_t authBufferLength = _countof(authBuffer);
+	err = interactive_auth_parse_refresh_token(config->RefreshToken.c_str(), authBuffer, &authBufferLength);
+	if (err)
+	{
+		return err;
+	}
+
+	// Success!
+	authToken = std::string(authBuffer, authBufferLength);
+	return 0;
+}
+
+int Auth::EnsureAuth(DnDPanel::ChatConfigPtr config)
+{
+	int err = 0;
+
+	this->authToken = std::string("");
+
+	// Try to use the old token if it exists.
+	do
+	{
+		// If we have a token, try to refresh.
+		if (config->RefreshToken.length() > 0)
+		{
+			char newToken[1024];
+			size_t newTokenLength = _countof(newToken);
+			err = interactive_auth_refresh_token(config->ClientId.c_str(), nullptr, config->RefreshToken.c_str(), newToken, &newTokenLength);
+			if (!err)
+			{
+				config->RefreshToken = std::string(newToken, newTokenLength);
+				break;
 			}
 			else
 			{
-				err = chat_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+				// If failed clear the token
+				config->RefreshToken = "";
 			}
+		}
+		else
+		{
+			// Start a clean auth
+			char shortCode[7];
+			size_t shortCodeLength = _countof(shortCode);
+			char shortCodeHandle[1024];
+			size_t shortCodeHandleLength = _countof(shortCodeHandle);
+			err = chat_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+			
 			if (err) return err;
 
 			// Pop the browser for the user to approve access.
@@ -257,7 +333,7 @@ int ChatUtil::queue_method(chat_session_internal& session, const std::string& me
 	std::shared_ptr<rapidjson::Document> methodDoc;
 	unsigned int packetId = 0;
 	RETURN_IF_FAILED(create_method_json(session, method, getParams, nullptr == onReply, &packetId, methodDoc));
-	DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*methodDoc));
+	//DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*methodDoc));
 	if (onReply)
 	{
 		std::unique_lock<std::mutex> incomingLock(session.incomingMutex);
@@ -721,11 +797,11 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 	mydoc->AddMember("id", "0", allocator);
 	
 
-	DnDPanel::Logger::Info(std::string("Queueing method for sign on: ") + mixer_internal::jsonStringify(*mydoc));
+	//DnDPanel::Logger::Info(std::string("Queueing method for sign on: ") + mixer_internal::jsonStringify(*mydoc));
 
 
 	std::string packet = mixer_internal::jsonStringify(*mydoc);
-	DnDPanel::Logger::Info("Sending websocket message: " + packet);
+	//DnDPanel::Logger::Info("Sending websocket message: " + packet);
 
 	// Critical Section: Only one thread may send a websocket message at a time.
 	int err = 0;
@@ -1214,7 +1290,7 @@ void ChatUtil::chat_session_internal::run_outgoing_thread()
 
 				auto methodEvent = reinterpret_cast<std::shared_ptr<rpc_method_event>&>(ev);
 				std::string packet = mixer_internal::jsonStringify(*(methodEvent->methodJson));
-				DnDPanel::Logger::Info("Sending websocket message: " + packet);
+				//DnDPanel::Logger::Info("Sending websocket message: " + packet);
 
 				// Critical Section: Only one thread may send a websocket message at a time.
 				int err = 0;
