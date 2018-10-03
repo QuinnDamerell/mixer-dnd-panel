@@ -22,6 +22,64 @@ chat_session_internal::chat_session_internal()
 
 ChatUtil::chat_event_internal::chat_event_internal(chat_event_type type) : type(type) {}
 
+#define JSON_CODE "code"
+#define JSON_HANDLE "handle"
+
+int chat_auth_get_short_code(const char* clientId, const char* clientSecret, char* shortCode, size_t* shortCodeLength, char* shortCodeHandle, size_t* shortCodeHandleLength)
+{
+	if (nullptr == clientId || nullptr == shortCode || nullptr == shortCodeLength || nullptr == shortCodeHandle || nullptr == shortCodeHandleLength)
+	{
+		return MIXER_ERROR_INVALID_POINTER;
+	}
+
+	mixer_internal::http_response response;
+	std::string oauthCodeUrl = "https://mixer.com/api/v1/oauth/shortcode";
+
+	// Construct the json body
+	std::string jsonBody;
+	if (nullptr == clientSecret)
+	{
+		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"scope\": \"chat:chat chat:connect\" }";
+	}
+	else
+	{
+		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"client_secret\": \"" + clientSecret + "\", \"scope\": \"interactive:robot:self\" }";
+	}
+
+	std::unique_ptr<mixer_internal::http_client> client = mixer_internal::http_factory::make_http_client();
+	RETURN_IF_FAILED(client->make_request(oauthCodeUrl, "POST", nullptr, jsonBody, response));
+	if (200 != response.statusCode)
+	{
+		return response.statusCode;
+	}
+
+	rapidjson::Document doc;
+	if (doc.Parse(response.body.c_str()).HasParseError())
+	{
+		return MIXER_ERROR_JSON_PARSE;
+	}
+
+	std::string code = doc[JSON_CODE].GetString();
+	std::string handle = doc[JSON_HANDLE].GetString();
+
+	if (*shortCodeLength < code.length() + 1 ||
+		*shortCodeHandleLength < handle.length() + 1)
+	{
+		*shortCodeLength = code.length() + 1;
+		*shortCodeHandleLength = handle.length() + 1;
+		return MIXER_ERROR_BUFFER_SIZE;
+	}
+
+	memcpy(shortCode, code.c_str(), code.length());
+	shortCode[code.length()] = 0;
+	*shortCodeLength = code.length() + 1;
+
+	memcpy(shortCodeHandle, handle.c_str(), handle.length());
+	shortCodeHandle[handle.length()] = 0;
+	*shortCodeHandleLength = handle.length() + 1;
+	return MIXER_OK;
+}
+
 int Auth::EnsureAuth(DnDPanel::DndConfigPtr config)
 {
 	int err = 0;
@@ -56,6 +114,89 @@ int Auth::EnsureAuth(DnDPanel::DndConfigPtr config)
 			char shortCodeHandle[1024];
 			size_t shortCodeHandleLength = _countof(shortCodeHandle);
 			err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+			
+			if (err) return err;
+
+			// Pop the browser for the user to approve access.
+			std::string authUrl = std::string("https://www.mixer.com/go?code=") + shortCode;
+			ShellExecuteA(0, 0, authUrl.c_str(), nullptr, nullptr, SW_SHOW);
+
+			// Wait for OAuth token response.
+			char refreshTokenBuffer[1024];
+			size_t refreshTokenLength = _countof(refreshTokenBuffer);
+			err = interactive_auth_wait_short_code(CLIENT_ID, nullptr, shortCodeHandle, refreshTokenBuffer, &refreshTokenLength);
+			if (err)
+			{
+				if (MIXER_ERROR_TIMED_OUT == err)
+				{
+					std::cout << "Authorization timed out, user did not approve access within the time limit." << std::endl;
+				}
+				else if (MIXER_ERROR_AUTH_DENIED == err)
+				{
+					std::cout << "User denied access." << std::endl;
+				}
+
+				return err;
+			}
+
+			// Cache the refresh token
+			config->RefreshToken = std::string(refreshTokenBuffer, refreshTokenLength);
+			break;
+		}
+	} while (config->RefreshToken.length() == 0);
+
+	// Write the config.
+	config->Write();
+
+	// Extract the authorization header from the refresh token.
+	char authBuffer[1024];
+	size_t authBufferLength = _countof(authBuffer);
+	err = interactive_auth_parse_refresh_token(config->RefreshToken.c_str(), authBuffer, &authBufferLength);
+	if (err)
+	{
+		return err;
+	}
+
+	// Success!
+	authToken = std::string(authBuffer, authBufferLength);
+	return 0;
+}
+
+int Auth::EnsureAuth(DnDPanel::ChatConfigPtr config)
+{
+	int err = 0;
+
+	this->authToken = std::string("");
+
+	// Try to use the old token if it exists.
+	do
+	{
+		// If we have a token, try to refresh.
+		if (config->RefreshToken.length() > 0)
+		{
+			char newToken[1024];
+			size_t newTokenLength = _countof(newToken);
+			err = interactive_auth_refresh_token(config->ClientId.c_str(), nullptr, config->RefreshToken.c_str(), newToken, &newTokenLength);
+			if (!err)
+			{
+				config->RefreshToken = std::string(newToken, newTokenLength);
+				break;
+			}
+			else
+			{
+				// If failed clear the token
+				config->RefreshToken = "";
+			}
+		}
+		else
+		{
+			// Start a clean auth
+			char shortCode[7];
+			size_t shortCodeLength = _countof(shortCode);
+			char shortCodeHandle[1024];
+			size_t shortCodeHandleLength = _countof(shortCodeHandle);
+			err = chat_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
+			
 			if (err) return err;
 
 			// Pop the browser for the user to approve access.
@@ -192,7 +333,7 @@ int ChatUtil::queue_method(chat_session_internal& session, const std::string& me
 	std::shared_ptr<rapidjson::Document> methodDoc;
 	unsigned int packetId = 0;
 	RETURN_IF_FAILED(create_method_json(session, method, getParams, nullptr == onReply, &packetId, methodDoc));
-	DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*methodDoc));
+	//DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*methodDoc));
 	if (onReply)
 	{
 		std::unique_lock<std::mutex> incomingLock(session.incomingMutex);
@@ -615,18 +756,52 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 	Value channelId(248987);
 	Value userId(354879);
 
+	mixer_internal::http_response response;
+	static std::string hostsUri = "https://mixer.com/api/v1/chats/248987";
+	mixer_internal::http_headers headers;
+	headers.emplace("Content-Type", "application/json");
+	headers.emplace("Authorization", session.m_auth->authToken);
+
+	// Critical Section: Http request.
+	{
+		std::unique_lock<std::mutex> httpLock(session.httpMutex);
+		RETURN_IF_FAILED(session.http->make_request(hostsUri, "GET", &headers, "", response));
+	}
+
+	if (200 != response.statusCode)
+	{
+		std::string errorMessage = "Failed to acquire chat access.";
+		DnDPanel::Logger::Error(std::to_string(response.statusCode) + " " + errorMessage);
+		session.enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_NO_HOST, std::move(errorMessage))));
+
+		return MIXER_ERROR_NO_HOST;
+	}
+
+	rapidjson::Document resultDoc;
+	if (resultDoc.Parse(response.body.c_str()).HasParseError())
+	{
+		return MIXER_ERROR_JSON_PARSE;
+	}
+
+	Value auth(resultDoc["authkey"].GetString(), allocator);
+
+	DnDPanel::Logger::Info(std::string("auth key:") + resultDoc["authkey"].GetString());
+
 	params.PushBack(channelId, allocator);
-	//params.PushBack(userId, allocator);
-	//params.PushBack("7fmxpbfa7LkJ9cMU", allocator);
-	DnDPanel::Logger::Info(std::string("arguments: ") + mixer_internal::jsonStringify(params));
+	params.PushBack(userId, allocator);
+	params.PushBack(auth, allocator);
+
+	DnDPanel::Logger::Info(std::string("arguments for channel sign on: ") + mixer_internal::jsonStringify(params));
+
 	mydoc->AddMember("arguments", params, allocator);
 	mydoc->AddMember("id", "0", allocator);
+	
 
-	DnDPanel::Logger::Info(std::string("Queueing method: ") + mixer_internal::jsonStringify(*mydoc));
+	//DnDPanel::Logger::Info(std::string("Queueing method for sign on: ") + mixer_internal::jsonStringify(*mydoc));
 
 
 	std::string packet = mixer_internal::jsonStringify(*mydoc);
-	DnDPanel::Logger::Info("Sending websocket message: " + packet);
+	//DnDPanel::Logger::Info("Sending websocket message: " + packet);
 
 	// Critical Section: Only one thread may send a websocket message at a time.
 	int err = 0;
@@ -894,32 +1069,36 @@ void ChatUtil::chat_session_internal::handle_ws_message(const mixer_internal::we
 		else if (0 == type.compare(RPC_REPLY))
 		{
 			std::string mj = mixer_internal::jsonStringify(*messageJson);
-			unsigned int id = std::stoi((*messageJson)[RPC_ID].GetString());
-			method_handler_c handlerFunc = nullptr;
-			bool executeImmediately = false;
-			// Critical Section: Check if there is a registered reply handler and if it's marked for immediate execution.
+			if ((*messageJson)[RPC_ID].IsString())
 			{
-				std::unique_lock<std::mutex> incomingLock(this->incomingMutex);
-				auto replyHandlerItr = this->replyHandlersById.find(id);
-				if (replyHandlerItr != this->replyHandlersById.end())
+				unsigned int id = std::stoi((*messageJson)[RPC_ID].GetString());
+				method_handler_c handlerFunc = nullptr;
+				bool executeImmediately = false;
+				// Critical Section: Check if there is a registered reply handler and if it's marked for immediate execution.
 				{
-					executeImmediately = replyHandlerItr->second.first;
-					handlerFunc.swap(replyHandlerItr->second.second);
-					this->replyHandlersById.erase(replyHandlerItr);
+					std::unique_lock<std::mutex> incomingLock(this->incomingMutex);
+					auto replyHandlerItr = this->replyHandlersById.find(id);
+					if (replyHandlerItr != this->replyHandlersById.end())
+					{
+						executeImmediately = replyHandlerItr->second.first;
+						handlerFunc.swap(replyHandlerItr->second.second);
+						this->replyHandlersById.erase(replyHandlerItr);
+					}
 				}
-			}
 
-			if (nullptr != handlerFunc)
-			{
-				if (executeImmediately)
+				if (nullptr != handlerFunc)
 				{
-					handlerFunc(*this, *messageJson);
-				}
-				else
-				{
-					this->enqueue_incoming_event(std::make_shared<rpc_reply_event>(id, std::move(messageJson), handlerFunc));
+					if (executeImmediately)
+					{
+						handlerFunc(*this, *messageJson);
+					}
+					else
+					{
+						this->enqueue_incoming_event(std::make_shared<rpc_reply_event>(id, std::move(messageJson), handlerFunc));
+					}
 				}
 			}
+			
 		}
 		else if (0 == type.compare(RPC_EVENT))
 		{
@@ -1111,7 +1290,7 @@ void ChatUtil::chat_session_internal::run_outgoing_thread()
 
 				auto methodEvent = reinterpret_cast<std::shared_ptr<rpc_method_event>&>(ev);
 				std::string packet = mixer_internal::jsonStringify(*(methodEvent->methodJson));
-				DnDPanel::Logger::Info("Sending websocket message: " + packet);
+				//DnDPanel::Logger::Info("Sending websocket message: " + packet);
 
 				// Critical Section: Only one thread may send a websocket message at a time.
 				int err = 0;

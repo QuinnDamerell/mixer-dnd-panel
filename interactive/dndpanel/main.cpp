@@ -23,7 +23,7 @@ using namespace DnDPanel;
 using namespace ChatUtil;
 using namespace ChatBot;
 
-void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, DndConfigPtr config)
+void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, ChatConfigPtr config)
 {
 	chatRunner->Run(auth, config);
 }
@@ -39,25 +39,40 @@ int main()
 #if MIXER_DEBUG
 	interactive_config_debug(interactive_debug_trace, [](const interactive_debug_level dbgMsgType, const char* dbgMsg, size_t dbgMsgSize)
 	{
-		std::cout << dbgMsg << std::endl;
+		//std::cout << dbgMsg << std::endl;
 	});
 #endif
 
 	
 
 	// Setup the config
-	DndConfigPtr config = std::make_shared<DndConfig>();
+	DndConfigPtr config_interactive = std::make_shared<DndConfig>();
+	ChatConfigPtr config_chat = std::make_shared<ChatConfig>();
 	int err = 0;
-	if ((err = config->Init()))
+	if ((err = config_interactive->Init("dndpanelconfig.json")))
 	{
 		Logger::Error("Failed to read config.");
 		return err;
 	}
 
-	AuthPtr auth = std::make_shared<Auth>();
+	if ((err = config_chat->Init("chatconfig.json")))
+	{
+		Logger::Error("Failed to read config.");
+		return err;
+	}
+
+	AuthPtr interactiveAuth = std::make_shared<Auth>();
+	AuthPtr chatAuth = std::make_shared<Auth>();
 
 	// Check auth
-	if ((err = auth->EnsureAuth(config)))
+	if ((err = interactiveAuth->EnsureAuth(config_interactive)))
+	{
+		Logger::Error("Failed setup auth.");
+		return err;
+	}
+
+	// Check auth
+	if ((err = chatAuth->EnsureAuth(config_chat)))
 	{
 		Logger::Error("Failed setup auth.");
 		return err;
@@ -66,8 +81,8 @@ int main()
     DndRunnerPtr interactiveRunner = std::make_shared<DndRunner>();
 	ChatRunnerPtr chatRunner = std::make_shared<ChatRunner>();
 
-	std::thread chat(runChat, chatRunner, auth, config);
-	std::thread interactive(runPanel, interactiveRunner, auth, config);
+	std::thread chat(runChat, chatRunner, chatAuth, config_chat);
+	std::thread interactive(runPanel, interactiveRunner, interactiveAuth, config_interactive);
 	
 	while (true)
 	{
@@ -96,27 +111,37 @@ void prepUserState(chat_session_internal* sessionInternal)
 		sessionInternal->usersState.SetObject();
 		return;
 	}
+	
 
 	char readBuffer[65536];
 	FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 	sessionInternal->usersState.ParseStream(is);
 	fclose(fp);
+
+	if (sessionInternal->usersState.IsNull())
+	{
+		sessionInternal->usersState.SetObject();
+	}
 }
 
-int ChatRunner::Run(AuthPtr auth, DndConfigPtr config)
+int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config)
 {
 	int err = 0;
 
 	m_auth = auth;
 	m_config = config;
+	
+	
 
+	
 	// Setup interactive
 	if ((err = chat_open_session(&m_session)))
 	{
 		Logger::Error("Failed to setup interactive!");
 		return err;
 	}
-
+	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
+	sessionInternal->m_auth = auth;
 	// Setup handlers
 	if ((err = SetupHandlers()))
 	{
@@ -133,7 +158,8 @@ int ChatRunner::Run(AuthPtr auth, DndConfigPtr config)
 
 	// Run! (like this was a game loop)
 	high_clock::time_point lastTickRun = high_clock::now();
-	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
+	
+	
 	prepUserState(sessionInternal);
 	for (;;)
 	{

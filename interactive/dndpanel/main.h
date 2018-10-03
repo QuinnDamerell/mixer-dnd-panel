@@ -56,13 +56,13 @@ namespace DnDPanel
 		public SharedFromThis
 	{
 	public:
-		int Run(ChatUtil::AuthPtr, DndConfigPtr);
+		int Run(ChatUtil::AuthPtr, ChatConfigPtr);
 		void ParticipantsChangedHandler(ChatUtil::chat_participant_action action, const ChatUtil::chat_participant* participant);
 		
 	private:
 		int SetupHandlers();
 		ChatUtil::AuthPtr m_auth;
-		DndConfigPtr m_config;
+		ChatConfigPtr m_config;
 		ChatUtil::chat_session m_session;
 
 	};	

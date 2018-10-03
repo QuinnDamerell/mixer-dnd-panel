@@ -56,5 +56,8 @@ jspm_packages
 /interactive/interactive.dir/*
 /interactive/CMakeFiles/*
 /interactive/CMakeCache.txt
+/interactive/dndpanelconfig.json
+/interactive/chatpanelconfig.json
+/interactive/userstate.json
 
 
