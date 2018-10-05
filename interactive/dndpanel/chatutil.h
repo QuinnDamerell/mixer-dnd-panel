@@ -241,6 +241,7 @@ namespace ChatUtil
 
 		// Method handlers
 		method_handlers_by_method methodHandlers;
+		std::map<std::string, int> levels;
 	};
 
 

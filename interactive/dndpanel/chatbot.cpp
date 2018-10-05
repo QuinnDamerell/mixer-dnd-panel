@@ -1,8 +1,42 @@
 #include "chatbot.h"
 #include "rapidjson/document.h"
+#include <string>
+#include "logger.h"
 
+using namespace std;
 using namespace RAPIDJSON_NAMESPACE;
 using namespace ChatUtil;
+
+// The events that matter
+int ChatBot::handle_chat_message(chat_session_internal& session, rapidjson::Document& doc)
+{
+	(doc);
+	std::string username = doc["data"]["user_name"].GetString();
+	incrementXp(session, username, 1);
+
+	for (auto& v : doc["data"]["message"]["message"].GetArray())
+	{
+		std::string found_text = v.GetObject()["text"].GetString();
+
+		if (found_text == "!echo")
+		{
+			sendMessage(session, "Echo echo echo echo echo");
+		}
+
+		if (found_text == "!xp")
+		{
+			sendMessage(session, username + " has: " + to_string(getXp(session, username)) + " xp.");
+		}
+
+		if (found_text == "!level")
+		{
+			sendMessage(session, username + " is level: " + getLevel(session, username) + ".");
+		}
+	}
+
+
+	return 0;
+}
 
 bool ChatBot::arrayContains(rapidjson::Value& arrayToCheck, std::string value)
 {
@@ -33,6 +67,35 @@ void ChatBot::verifyUser(chat_session_internal& session, std::string Name)
 	}
 }
 
+int ChatBot::getXp(chat_session_internal& session, std::string Name)
+{
+	verifyUser(session, Name);
+	for (auto& v : session.usersState["Users"].GetArray())
+	{
+		if (v["Name"].GetString() == Name)
+		{
+			return v["XP"].GetInt();
+		}
+	}
+}
+
+std::string ChatBot::getLevel(chat_session_internal& session, std::string Name)
+{
+	verifyUser(session, Name);
+	int xp = getXp(session, Name);
+	for (std::map<std::string, int>::iterator it = session.levels.begin(); it != session.levels.end(); ++it)
+	{
+		std::string name = it->first;
+		int levelMax = it->second;
+		if (xp < levelMax)
+		{
+			return name;
+		}
+	}
+
+	return "No Level";
+}
+
 void ChatBot::incrementXp(chat_session_internal& session, std::string Name, int xpGain)
 {
 	verifyUser(session, Name);
@@ -47,6 +110,7 @@ void ChatBot::incrementXp(chat_session_internal& session, std::string Name, int 
 }
 
 int message_id = 1000;
+
 void ChatBot::sendMessage(chat_session_internal& session, std::string message)
 {
 	std::shared_ptr<rapidjson::Document> doc(std::make_shared<rapidjson::Document>());
@@ -71,27 +135,7 @@ void ChatBot::sendMessage(chat_session_internal& session, std::string message)
 	session.outgoingCV.notify_one();
 }
 
-// The events that matter
-int ChatBot::handle_chat_message(chat_session_internal& session, rapidjson::Document& doc)
-{
-	(doc);
-	std::string username = doc["data"]["user_name"].GetString();
-	incrementXp(session, username, 1);
 
-	for (auto& v : doc["data"]["message"]["message"].GetArray())
-	{
-		std::string found_text = v.GetObject()["text"].GetString();
-
-		if (found_text == "!echo")
-		{
-			sendMessage(session, "Echo echo echo echo echo");
-		}
-
-	}
-
-	
-	return 0;
-}
 
 int ChatBot::handle_reply(chat_session_internal& session, rapidjson::Document& doc)
 {

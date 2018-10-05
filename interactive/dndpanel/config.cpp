@@ -92,6 +92,28 @@ int ChatConfig::Init(std::string configFileLoc)
 		RefreshToken = d[REFRESH_TOKEN_TOKEN].GetString();
 	}
 
+	std::ifstream levelFile;
+	levelFile.open("levelxp.json");
+	if (!levelFile.is_open())
+	{
+		Logger::Info("No level config file found, creating a new chat config.");
+		return 0;
+	}
+
+	IStreamWrapper iswLevel(levelFile);
+	Document dLevel;
+	dLevel.ParseStream(iswLevel);
+
+	if (!dLevel.IsObject())
+	{
+		return 1;
+	}
+
+	for (Value::ConstMemberIterator iter = dLevel.MemberBegin(); iter != dLevel.MemberEnd(); ++iter) 
+	{
+		levels[iter->name.GetString()] = iter->value.GetInt();
+	}
+
 	return 0;
 }
 
