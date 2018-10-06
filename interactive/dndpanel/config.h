@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include <string>
+#include <map>
 
 #define CLIENT_ID		"83068dc323fd2e16eddfe89970e548a277c46e047a08d0dd"
 #define INTERACTIVE_ID	"282246"
@@ -35,5 +36,6 @@ namespace DnDPanel
         std::string ShareCode = SHARE_CODE;
 		std::string RefreshToken;
 		std::string configFileLocation;
+		std::map<std::string, int> levels;
 	};
 }

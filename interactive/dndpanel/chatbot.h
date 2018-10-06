@@ -11,6 +11,10 @@ namespace ChatBot
 
 	void incrementXp(ChatUtil::chat_session_internal& session, std::string Name, int xpGain);
 
+	int getXp(ChatUtil::chat_session_internal& session, std::string Name);
+
+	std::string getLevel(ChatUtil::chat_session_internal& session, std::string Name);
+
 	int handle_chat_message(ChatUtil::chat_session_internal& session, rapidjson::Document& doc);
 
 	int handle_reply(ChatUtil::chat_session_internal& session, rapidjson::Document& doc);

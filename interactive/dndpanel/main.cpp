@@ -132,15 +132,16 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config)
 	m_config = config;
 	
 	
-
 	
-	// Setup interactive
+	// Setup chat
 	if ((err = chat_open_session(&m_session)))
 	{
 		Logger::Error("Failed to setup interactive!");
 		return err;
 	}
 	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
+
+	sessionInternal->levels = config->levels;
 	sessionInternal->m_auth = auth;
 	// Setup handlers
 	if ((err = SetupHandlers()))
