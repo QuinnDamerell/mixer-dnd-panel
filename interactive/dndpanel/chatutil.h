@@ -158,7 +158,7 @@ namespace ChatUtil
 
 	struct chat_session_internal
 	{
-
+		int chatToConnect;
 		Document usersState;
 		chat_session_internal();
 
@@ -241,7 +241,7 @@ namespace ChatUtil
 
 		// Method handlers
 		method_handlers_by_method methodHandlers;
-		std::map<std::string, int> levels;
+		std::vector<std::pair<std::string, int>> levels;
 	};
 
 

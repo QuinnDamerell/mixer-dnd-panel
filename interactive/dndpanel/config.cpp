@@ -93,7 +93,7 @@ int ChatConfig::Init(std::string configFileLoc)
 	}
 
 	std::ifstream levelFile;
-	levelFile.open("levelxp.json");
+	levelFile.open("config-files/levelxp.json");
 	if (!levelFile.is_open())
 	{
 		Logger::Info("No level config file found, creating a new chat config.");
