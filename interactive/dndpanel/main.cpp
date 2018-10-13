@@ -56,13 +56,13 @@ int main()
 
 
 	int err = 0;
-	if ((err = config_interactive->Init("dndpanelconfig.json")))
+	if ((err = config_interactive->Init("generated-files/dndpanelconfig.json")))
 	{
 		Logger::Error("Failed to read interactive config.");
 		return err;
 	}
 	
-	if ((err = config_chat->Init("chatconfig.json")))
+	if ((err = config_chat->Init("generated-files/chatconfig.json")))
 	{
 		Logger::Error("Failed to read chat config.");
 		return err;
@@ -86,7 +86,7 @@ int main()
 
 	std::ifstream inFile;
 
-	inFile.open("channelcache.txt");
+	inFile.open("generated-files/channelcache.txt");
 	if (inFile) {
 		inFile >> channelToConnectTo;
 		std::cout << "Found a cached channel would you like to use it (y/n): " << channelToConnectTo << std::endl;
@@ -105,7 +105,7 @@ int main()
 		std::cin >> channelToConnectTo;
 	}
 
-	std::ofstream myfile("channelcache.txt");
+	std::ofstream myfile("generated-files/channelcache.txt");
 	if (myfile.is_open())
 	{
 		myfile << channelToConnectTo;
@@ -135,7 +135,7 @@ int main()
 	}
 }
 
-std::string userstatelocation = "userstate.json";
+std::string userstatelocation = "generated-files/userstate.json";
 
 void saveFile(rapidjson::Document& d)
 {

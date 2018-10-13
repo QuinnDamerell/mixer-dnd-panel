@@ -68,8 +68,10 @@ void ChatBot::verifyUser(chat_session_internal& session, std::string Name)
 		o.AddMember("Intelligence", 0, session.usersState.GetAllocator());
 		o.AddMember("Wisdom", 0, session.usersState.GetAllocator());
 		o.AddMember("Charisma", 0, session.usersState.GetAllocator());
-		o.AddMember("Class", 0, session.usersState.GetAllocator());
+		o.AddMember("Class", "No Class", session.usersState.GetAllocator());
 		o.AddMember("ClassLevel", 0, session.usersState.GetAllocator());
+		o.AddMember("Job", "No Job", session.usersState.GetAllocator());
+		o.AddMember("JobLevel", 0, session.usersState.GetAllocator());
 		o.AddMember("ViewerLevel", "1", session.usersState.GetAllocator());
 		session.usersState["Users"].PushBack(o, session.usersState.GetAllocator());
 	}
