@@ -34,7 +34,6 @@ int ChatBot::handle_chat_message(chat_session_internal& session, rapidjson::Docu
 		}
 	}
 
-
 	return 0;
 }
 
@@ -63,6 +62,15 @@ void ChatBot::verifyUser(chat_session_internal& session, std::string Name)
 		Value o(kObjectType);
 		o.AddMember("Name", Name, session.usersState.GetAllocator());
 		o.AddMember("XP", 0, session.usersState.GetAllocator());
+		o.AddMember("Strength", 0, session.usersState.GetAllocator());
+		o.AddMember("Dexterity", 0, session.usersState.GetAllocator());
+		o.AddMember("Constitution", 0, session.usersState.GetAllocator());
+		o.AddMember("Intelligence", 0, session.usersState.GetAllocator());
+		o.AddMember("Wisdom", 0, session.usersState.GetAllocator());
+		o.AddMember("Charisma", 0, session.usersState.GetAllocator());
+		o.AddMember("Class", 0, session.usersState.GetAllocator());
+		o.AddMember("ClassLevel", 0, session.usersState.GetAllocator());
+		o.AddMember("ViewerLevel", "1", session.usersState.GetAllocator());
 		session.usersState["Users"].PushBack(o, session.usersState.GetAllocator());
 	}
 }
@@ -83,7 +91,7 @@ std::string ChatBot::getLevel(chat_session_internal& session, std::string Name)
 {
 	verifyUser(session, Name);
 	int xp = getXp(session, Name);
-	for (std::map<std::string, int>::iterator it = session.levels.begin(); it != session.levels.end(); ++it)
+	for (std::vector<std::pair<std::string, int>>::iterator it = session.levels.begin(); it != session.levels.end(); ++it)
 	{
 		std::string name = it->first;
 		int levelMax = it->second;
@@ -104,6 +112,7 @@ void ChatBot::incrementXp(chat_session_internal& session, std::string Name, int 
 		if (v["Name"].GetString() == Name)
 		{
 			v["XP"] = v["XP"].GetInt() + xpGain;
+			v["ViewerLevel"].SetString(getLevel(session, Name), session.usersState.GetAllocator());
 			return;
 		}
 	}

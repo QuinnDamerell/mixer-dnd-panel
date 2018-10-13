@@ -739,6 +739,56 @@ int ChatUtil::handle_scene_changed(chat_session_internal& session, rapidjson::Do
 	return cache_scenes(session);
 }
 
+struct user_object
+{
+	int userid;
+	int channelid;
+};
+
+user_object getUserInfo(chat_session_internal& session)
+{
+	user_object result;
+	result.userid = -1;
+	result.channelid = -1;
+
+	mixer_internal::http_response response;
+	static std::string hostsUri = "https://mixer.com/api/v1/users/current";
+	mixer_internal::http_headers headers;
+	//headers.emplace("Content-Type", "application/json");
+	headers.emplace("Authorization", session.m_auth->authToken);
+
+	// Critical Section: Http request.
+	{
+		std::unique_lock<std::mutex> httpLock(session.httpMutex);
+		session.http->make_request(hostsUri, "GET", &headers, "", response);
+	}
+
+	if (200 != response.statusCode)
+	{
+		std::string errorMessage = "Failed to acquire chat access.";
+		DnDPanel::Logger::Error(std::to_string(response.statusCode) + " " + errorMessage);
+		session.enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_NO_HOST, std::move(errorMessage))));
+
+		return result;
+	}
+
+	std::string body = response.body.c_str();
+	std::string anchor1 = "\"description\":\"";
+	int anchor1Start = body.find(anchor1) + anchor1.length();
+	body.erase(anchor1Start, body.find("\",\"typeId\"") - anchor1Start);
+	rapidjson::Document resultDoc;
+	if (resultDoc.Parse(body).HasParseError())
+	{
+		
+		DnDPanel::Logger::Error("Error parsing :" + body);
+		return result;
+	}
+
+	result.userid = resultDoc["id"].GetInt();
+	result.channelid = resultDoc["channel"]["id"].GetInt();
+
+	return result;
+}
 int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Document& doc)
 {
 	(doc);
@@ -751,13 +801,16 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 
 	mydoc->AddMember("type", "method", allocator);
 	mydoc->AddMember("method", "auth", allocator);
-	// Get the parameters from the caller.
+	// Get the parameters from the caller.	
+	
 	rapidjson::Value params(rapidjson::kArrayType);
-	Value channelId(248987);
-	Value userId(354879);
+
+	user_object uo = getUserInfo(session);
+	Value channelId(session.chatToConnect);
+	Value userId(uo.userid);
 
 	mixer_internal::http_response response;
-	static std::string hostsUri = "https://mixer.com/api/v1/chats/248987";
+	static std::string hostsUri = "https://mixer.com/api/v1/chats/" + std::to_string(uo.channelid);
 	mixer_internal::http_headers headers;
 	headers.emplace("Content-Type", "application/json");
 	headers.emplace("Authorization", session.m_auth->authToken);
@@ -1044,7 +1097,6 @@ void ChatUtil::chat_session_internal::handle_ws_open(const mixer_internal::webso
 void ChatUtil::chat_session_internal::handle_ws_message(const mixer_internal::websocket& socket, const std::string& message)
 {
 	(socket);
-	DnDPanel::Logger::Info("Websocket message received: " + message);
 	if (this->shutdownRequested)
 	{
 		return;
@@ -1502,7 +1554,6 @@ int ChatUtil::chat_run(chat_session session, unsigned int maxEventsToProcess)
 		}
 		case chat_event_type_rpc_event:
 		{
-			DnDPanel::Logger::Info("chat_event_type_rpc_event");
 			auto rpcMethodEvent = reinterpret_cast<std::shared_ptr<rpc_method_event>&>(ev);
 			if (rpcMethodEvent->methodJson->HasMember(RPC_SEQUENCE))
 			{

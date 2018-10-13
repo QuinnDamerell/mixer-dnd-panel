@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#define MIXER_DEBUG 1
+#define MIXER_DEBUG 0
 
 #undef GetObject
 
@@ -19,13 +19,17 @@
 #include "chatutil.h"
 #include "chatbot.h"
 
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+
 using namespace DnDPanel;
 using namespace ChatUtil;
 using namespace ChatBot;
 
-void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, ChatConfigPtr config)
+void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 {
-	chatRunner->Run(auth, config);
+	chatRunner->Run(auth, config, channelToConnectTo);
 }
 
 void runPanel(DndRunnerPtr interactiveRunner, AuthPtr auth, DndConfigPtr config)
@@ -39,50 +43,91 @@ int main()
 #if MIXER_DEBUG
 	interactive_config_debug(interactive_debug_trace, [](const interactive_debug_level dbgMsgType, const char* dbgMsg, size_t dbgMsgSize)
 	{
-		//std::cout << dbgMsg << std::endl;
+		std::cout << dbgMsg << std::endl;
 	});
 #endif
 
 	
+	std::cout << "Starting up chat and interactive bot" << std::endl;
 
 	// Setup the config
 	DndConfigPtr config_interactive = std::make_shared<DndConfig>();
 	ChatConfigPtr config_chat = std::make_shared<ChatConfig>();
+
+
 	int err = 0;
 	if ((err = config_interactive->Init("dndpanelconfig.json")))
 	{
-		Logger::Error("Failed to read config.");
+		Logger::Error("Failed to read interactive config.");
 		return err;
 	}
-
+	
 	if ((err = config_chat->Init("chatconfig.json")))
 	{
-		Logger::Error("Failed to read config.");
+		Logger::Error("Failed to read chat config.");
 		return err;
 	}
 
 	AuthPtr interactiveAuth = std::make_shared<Auth>();
 	AuthPtr chatAuth = std::make_shared<Auth>();
 
+	std::cout << "Preping interactive" << std::endl;
 	// Check auth
 	if ((err = interactiveAuth->EnsureAuth(config_interactive)))
 	{
-		Logger::Error("Failed setup auth.");
+		Logger::Error("Failed setup for interactive auth.");
 		return err;
 	}
+
+	std::cout << "Press enter after interactive is started" << std::endl;
+	std::cin.get();
+
+	int channelToConnectTo;
+
+	std::ifstream inFile;
+
+	inFile.open("channelcache.txt");
+	if (inFile) {
+		inFile >> channelToConnectTo;
+		std::cout << "Found a cached channel would you like to use it (y/n): " << channelToConnectTo << std::endl;
+		inFile.close();
+	}
+
+	char response;
+	std::cin >> response;
+	if (response == 'y')
+	{
+		std::cout << "Keeping cached channel." << std::endl;
+	}
+	else
+	{
+		std::cout << "Insert channel to connect to with chat:";
+		std::cin >> channelToConnectTo;
+	}
+
+	std::ofstream myfile("channelcache.txt");
+	if (myfile.is_open())
+	{
+		myfile << channelToConnectTo;
+		myfile.close();
+	}
+	
+
+	std::cout << "Preping chat for channel number:" << channelToConnectTo << std::endl;
 
 	// Check auth
 	if ((err = chatAuth->EnsureAuth(config_chat)))
 	{
-		Logger::Error("Failed setup auth.");
+		Logger::Error("Failed setup chat auth.");
 		return err;
 	}
 
     DndRunnerPtr interactiveRunner = std::make_shared<DndRunner>();
 	ChatRunnerPtr chatRunner = std::make_shared<ChatRunner>();
 
-	std::thread chat(runChat, chatRunner, chatAuth, config_chat);
+	
 	std::thread interactive(runPanel, interactiveRunner, interactiveAuth, config_interactive);
+	std::thread chat(runChat, chatRunner, chatAuth, config_chat, channelToConnectTo);
 	
 	while (true)
 	{
@@ -124,7 +169,7 @@ void prepUserState(chat_session_internal* sessionInternal)
 	}
 }
 
-int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config)
+int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 {
 	int err = 0;
 
@@ -136,13 +181,26 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config)
 	// Setup chat
 	if ((err = chat_open_session(&m_session)))
 	{
-		Logger::Error("Failed to setup interactive!");
+		Logger::Error("Failed to setup chat!");
 		return err;
 	}
 	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
 
-	sessionInternal->levels = config->levels;
+	std::vector<std::pair<std::string, int>> pairs;
+	for (auto itr = config->levels.begin(); itr != config->levels.end(); ++itr)
+		pairs.push_back(*itr);
+
+	sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b)
+	{
+		return a.second < b.second;
+	}
+	);
+	
+	sessionInternal->levels = pairs;
+	
 	sessionInternal->m_auth = auth;
+	sessionInternal->chatToConnect = channelToConnectTo;
+
 	// Setup handlers
 	if ((err = SetupHandlers()))
 	{
@@ -153,7 +211,7 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config)
 	// Connect
 	if ((err = chat_connect(m_session, m_auth->authToken.c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
 	{
-		Logger::Error("Failed to connect to interactive!");
+		Logger::Error("Failed to connect to chat!");
 		return err;
 	}
 

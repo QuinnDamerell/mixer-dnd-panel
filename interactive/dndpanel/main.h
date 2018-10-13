@@ -56,7 +56,7 @@ namespace DnDPanel
 		public SharedFromThis
 	{
 	public:
-		int Run(ChatUtil::AuthPtr, ChatConfigPtr);
+		int Run(ChatUtil::AuthPtr, ChatConfigPtr,int);
 		void ParticipantsChangedHandler(ChatUtil::chat_participant_action action, const ChatUtil::chat_participant* participant);
 		
 	private:
