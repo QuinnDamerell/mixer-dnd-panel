@@ -82,6 +82,11 @@ void Bot::commands(chat_session_internal& session, rapidjson::Document& doc)
 		{
 			result += ", " + key;
 		}
+		else
+		{
+			result += key;
+			isFirst = false;
+		}
 
 	}
 
@@ -95,6 +100,30 @@ void commands_wrapper(chat_session_internal& session, rapidjson::Document& doc)
 	saved_bot->commands(session, doc);
 }
 
+void Bot::cclass(chat_session_internal& session, rapidjson::Document& doc)
+{
+	std::string username = doc["data"]["user_name"].GetString();
+	sendWhisper(session, username + " is class: " + getClass(session, username) + ".", username);
+	deleteMessage(session, doc["data"]["id"].GetString());
+}
+
+void class_wrapper(chat_session_internal& session, rapidjson::Document& doc)
+{
+	saved_bot->cclass(session, doc);
+}
+
+void Bot::job(chat_session_internal& session, rapidjson::Document& doc)
+{
+	std::string username = doc["data"]["user_name"].GetString();
+	sendWhisper(session, username + " is job: " + getJob(session, username) + ".", username);
+	deleteMessage(session, doc["data"]["id"].GetString());
+}
+
+void job_wrapper(chat_session_internal& session, rapidjson::Document& doc)
+{
+	saved_bot->job(session, doc);
+}
+
 Bot::Bot()
 {
 	Init();
@@ -105,6 +134,8 @@ Bot::Bot()
 	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!xp", xp_wrapper));
 	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!level", level_wrapper));
 	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!commands", commands_wrapper));
+	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!class", class_wrapper));
+	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!job", job_wrapper));
 }
 
 void Bot::Init()
@@ -206,6 +237,30 @@ std::string Bot::getLevel(chat_session_internal& session, std::string Name)
 	}
 
 	return "No Level";
+}
+
+std::string Bot::getClass(chat_session_internal& session, std::string Name)
+{
+	verifyUser(session, Name);
+	for (auto& v : session.usersState["Users"].GetArray())
+	{
+		if (v["Name"].GetString() == Name)
+		{
+			return v["Class"].GetString();
+		}
+	}
+}
+
+std::string Bot::getJob(chat_session_internal& session, std::string Name)
+{
+	verifyUser(session, Name);
+	for (auto& v : session.usersState["Users"].GetArray())
+	{
+		if (v["Name"].GetString() == Name)
+		{
+			return v["Job"].GetString();
+		}
+	}
 }
 
 void Bot::incrementXp(chat_session_internal& session, std::string Name, int xpGain)

@@ -26,6 +26,10 @@ namespace ChatBot
 
 		std::string getLevel(ChatSession::chat_session_internal& session, std::string Name);
 
+		std::string getClass(ChatSession::chat_session_internal& session, std::string Name);
+
+		std::string getJob(ChatSession::chat_session_internal& session, std::string Name);
+
 		int handle_chat_message(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
 
 		int handle_reply(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
@@ -51,6 +55,10 @@ namespace ChatBot
 		void level(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
 		
 		void commands(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void cclass(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void job(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
 
 		std::map<std::string, std::function<void(ChatSession::chat_session_internal&, rapidjson::Document&)>> funcMap;
 
