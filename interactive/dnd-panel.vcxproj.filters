@@ -19,6 +19,12 @@
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\auth.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\common.h">
@@ -40,6 +46,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\auth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_state.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_control_pointer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_participant_action.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_control_event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_participant.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_event_internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -328,6 +328,17 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chatutil.h" />
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.cpp" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\auth.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\auth.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_state.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_control_pointer.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_participant_action.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_control_event.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_participant.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_object.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\ChatUtil\chat_event_internal.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="P:\mixer-dnd-panel\interactive\ZERO_CHECK.vcxproj">

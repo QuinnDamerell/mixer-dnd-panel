@@ -18,6 +18,7 @@
 
 #include "chatutil.h"
 #include "chatbot.h"
+#include "chat_session_internal.h"
 
 #include <iostream>
 #include <iomanip>
@@ -26,6 +27,7 @@
 using namespace DnDPanel;
 using namespace ChatUtil;
 using namespace ChatBot;
+using namespace ChatSession;
 
 void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 {
@@ -125,7 +127,6 @@ int main()
     DndRunnerPtr interactiveRunner = std::make_shared<DndRunner>();
 	ChatRunnerPtr chatRunner = std::make_shared<ChatRunner>();
 
-	
 	std::thread interactive(runPanel, interactiveRunner, interactiveAuth, config_interactive);
 	std::thread chat(runChat, chatRunner, chatAuth, config_chat, channelToConnectTo);
 	
@@ -176,10 +177,11 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	m_auth = auth;
 	m_config = config;
 	
+	// Setup Bot Class
+	BotPtr chatBot = std::make_shared<Bot>();
 	
-	
-	// Setup chat
-	if ((err = chat_open_session(&m_session)))
+	// Setup chat ect
+	if ((err = chat_open_session(&m_session, chatBot)))
 	{
 		Logger::Error("Failed to setup chat!");
 		return err;
@@ -209,7 +211,7 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	}
 
 	// Connect
-	if ((err = chat_connect(m_session, m_auth->authToken.c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
+	if ((err = chat_connect(m_session, m_auth->getAuthToken().c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
 	{
 		Logger::Error("Failed to connect to chat!");
 		return err;
@@ -268,7 +270,7 @@ int DndRunner::Run(AuthPtr auth, DndConfigPtr config)
     }
 
     // Connect
-    if ((err = interactive_connect(m_session, m_auth->authToken.c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
+    if ((err = interactive_connect(m_session, m_auth->getAuthToken().c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
     {
         Logger::Error("Failed to connect to interactive!");
         return err;

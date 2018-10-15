@@ -1,27 +1,58 @@
 #pragma once
 
 #include "rapidjson/document.h"
-#include "chatutil.h"
+
+#include "chat_session_internal.h"
 
 namespace ChatBot
 {
-	bool arrayContains(rapidjson::Value& arrayToCheck, std::string value);
+	DECLARE_SMARTPOINTER(Bot);
+	class Bot :
+		public SharedFromThis
+	{
+	public:
 
-	void verifyUser(ChatUtil::chat_session_internal& session, std::string Name);
+		Bot();
 
-	void incrementXp(ChatUtil::chat_session_internal& session, std::string Name, int xpGain);
+		void Init();
 
-	int getXp(ChatUtil::chat_session_internal& session, std::string Name);
+		bool arrayContains(rapidjson::Value& arrayToCheck, std::string value);
 
-	std::string getLevel(ChatUtil::chat_session_internal& session, std::string Name);
+		void verifyUser(ChatSession::chat_session_internal& session, std::string Name);
 
-	int handle_chat_message(ChatUtil::chat_session_internal& session, rapidjson::Document& doc);
+		void incrementXp(ChatSession::chat_session_internal& session, std::string Name, int xpGain);
 
-	int handle_reply(ChatUtil::chat_session_internal& session, rapidjson::Document& doc);
+		int getXp(ChatSession::chat_session_internal& session, std::string Name);
 
-	int handle_user_join(ChatUtil::chat_session_internal& session, rapidjson::Document& doc);
+		std::string getLevel(ChatSession::chat_session_internal& session, std::string Name);
 
-	int handle_user_leave(ChatUtil::chat_session_internal& session, rapidjson::Document& doc);
+		int handle_chat_message(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
 
-	void sendMessage(ChatUtil::chat_session_internal& session, std::string message);
+		int handle_reply(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		int handle_user_join(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		int handle_user_leave(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void sendMessage(ChatSession::chat_session_internal& session, std::string message);
+
+		void sendWhisper(ChatSession::chat_session_internal& session, std::string message, std::string target);
+
+		void deleteMessage(ChatSession::chat_session_internal& session, std::string id);
+
+		void chatTest(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void chatWhisperTest(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void chatDeleteTest(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void xp(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void level(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+		
+		void commands(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		std::map<std::string, std::function<void(ChatSession::chat_session_internal&, rapidjson::Document&)>> funcMap;
+
+	};
 }

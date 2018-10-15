@@ -9,240 +9,11 @@
 
 using namespace ChatUtil;
 using namespace ChatBot;
+using namespace ChatSession;
+using namespace rapidjson;
 
-
-chat_session_internal::chat_session_internal()
-	: callerContext(nullptr), isReady(false), state(chat_disconnected), shutdownRequested(false), packetId(0),
-	sequenceId(0), wsOpen(false), onInput(nullptr), onError(nullptr), onStateChanged(nullptr), onParticipantsChanged(nullptr),
-	onUnhandledMethod(nullptr), onControlChanged(nullptr), onTransactionComplete(nullptr), serverTimeOffsetMs(0), serverTimeOffsetCalculated(false), scenesCached(false), groupsCached(false),
-	getTimeRequestId(0xffffffff)
-{
-	scenesRoot.SetObject();
-}
 
 ChatUtil::chat_event_internal::chat_event_internal(chat_event_type type) : type(type) {}
-
-#define JSON_CODE "code"
-#define JSON_HANDLE "handle"
-
-int chat_auth_get_short_code(const char* clientId, const char* clientSecret, char* shortCode, size_t* shortCodeLength, char* shortCodeHandle, size_t* shortCodeHandleLength)
-{
-	if (nullptr == clientId || nullptr == shortCode || nullptr == shortCodeLength || nullptr == shortCodeHandle || nullptr == shortCodeHandleLength)
-	{
-		return MIXER_ERROR_INVALID_POINTER;
-	}
-
-	mixer_internal::http_response response;
-	std::string oauthCodeUrl = "https://mixer.com/api/v1/oauth/shortcode";
-
-	// Construct the json body
-	std::string jsonBody;
-	if (nullptr == clientSecret)
-	{
-		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"scope\": \"chat:chat chat:connect\" }";
-	}
-	else
-	{
-		jsonBody = std::string("{ \"client_id\": \"") + clientId + "\", \"client_secret\": \"" + clientSecret + "\", \"scope\": \"interactive:robot:self\" }";
-	}
-
-	std::unique_ptr<mixer_internal::http_client> client = mixer_internal::http_factory::make_http_client();
-	RETURN_IF_FAILED(client->make_request(oauthCodeUrl, "POST", nullptr, jsonBody, response));
-	if (200 != response.statusCode)
-	{
-		return response.statusCode;
-	}
-
-	rapidjson::Document doc;
-	if (doc.Parse(response.body.c_str()).HasParseError())
-	{
-		return MIXER_ERROR_JSON_PARSE;
-	}
-
-	std::string code = doc[JSON_CODE].GetString();
-	std::string handle = doc[JSON_HANDLE].GetString();
-
-	if (*shortCodeLength < code.length() + 1 ||
-		*shortCodeHandleLength < handle.length() + 1)
-	{
-		*shortCodeLength = code.length() + 1;
-		*shortCodeHandleLength = handle.length() + 1;
-		return MIXER_ERROR_BUFFER_SIZE;
-	}
-
-	memcpy(shortCode, code.c_str(), code.length());
-	shortCode[code.length()] = 0;
-	*shortCodeLength = code.length() + 1;
-
-	memcpy(shortCodeHandle, handle.c_str(), handle.length());
-	shortCodeHandle[handle.length()] = 0;
-	*shortCodeHandleLength = handle.length() + 1;
-	return MIXER_OK;
-}
-
-int Auth::EnsureAuth(DnDPanel::DndConfigPtr config)
-{
-	int err = 0;
-
-	this->authToken = std::string("");
-
-	// Try to use the old token if it exists.
-	do
-	{
-		// If we have a token, try to refresh.
-		if (config->RefreshToken.length() > 0)
-		{
-			char newToken[1024];
-			size_t newTokenLength = _countof(newToken);
-			err = interactive_auth_refresh_token(config->ClientId.c_str(), nullptr, config->RefreshToken.c_str(), newToken, &newTokenLength);
-			if (!err)
-			{
-				config->RefreshToken = std::string(newToken, newTokenLength);
-				break;
-			}
-			else
-			{
-				// If failed clear the token
-				config->RefreshToken = "";
-			}
-		}
-		else
-		{
-			// Start a clean auth
-			char shortCode[7];
-			size_t shortCodeLength = _countof(shortCode);
-			char shortCodeHandle[1024];
-			size_t shortCodeHandleLength = _countof(shortCodeHandle);
-			err = interactive_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
-			
-			if (err) return err;
-
-			// Pop the browser for the user to approve access.
-			std::string authUrl = std::string("https://www.mixer.com/go?code=") + shortCode;
-			ShellExecuteA(0, 0, authUrl.c_str(), nullptr, nullptr, SW_SHOW);
-
-			// Wait for OAuth token response.
-			char refreshTokenBuffer[1024];
-			size_t refreshTokenLength = _countof(refreshTokenBuffer);
-			err = interactive_auth_wait_short_code(CLIENT_ID, nullptr, shortCodeHandle, refreshTokenBuffer, &refreshTokenLength);
-			if (err)
-			{
-				if (MIXER_ERROR_TIMED_OUT == err)
-				{
-					std::cout << "Authorization timed out, user did not approve access within the time limit." << std::endl;
-				}
-				else if (MIXER_ERROR_AUTH_DENIED == err)
-				{
-					std::cout << "User denied access." << std::endl;
-				}
-
-				return err;
-			}
-
-			// Cache the refresh token
-			config->RefreshToken = std::string(refreshTokenBuffer, refreshTokenLength);
-			break;
-		}
-	} while (config->RefreshToken.length() == 0);
-
-	// Write the config.
-	config->Write();
-
-	// Extract the authorization header from the refresh token.
-	char authBuffer[1024];
-	size_t authBufferLength = _countof(authBuffer);
-	err = interactive_auth_parse_refresh_token(config->RefreshToken.c_str(), authBuffer, &authBufferLength);
-	if (err)
-	{
-		return err;
-	}
-
-	// Success!
-	authToken = std::string(authBuffer, authBufferLength);
-	return 0;
-}
-
-int Auth::EnsureAuth(DnDPanel::ChatConfigPtr config)
-{
-	int err = 0;
-
-	this->authToken = std::string("");
-
-	// Try to use the old token if it exists.
-	do
-	{
-		// If we have a token, try to refresh.
-		if (config->RefreshToken.length() > 0)
-		{
-			char newToken[1024];
-			size_t newTokenLength = _countof(newToken);
-			err = interactive_auth_refresh_token(config->ClientId.c_str(), nullptr, config->RefreshToken.c_str(), newToken, &newTokenLength);
-			if (!err)
-			{
-				config->RefreshToken = std::string(newToken, newTokenLength);
-				break;
-			}
-			else
-			{
-				// If failed clear the token
-				config->RefreshToken = "";
-			}
-		}
-		else
-		{
-			// Start a clean auth
-			char shortCode[7];
-			size_t shortCodeLength = _countof(shortCode);
-			char shortCodeHandle[1024];
-			size_t shortCodeHandleLength = _countof(shortCodeHandle);
-			err = chat_auth_get_short_code(CLIENT_ID, nullptr, shortCode, &shortCodeLength, shortCodeHandle, &shortCodeHandleLength);
-			
-			if (err) return err;
-
-			// Pop the browser for the user to approve access.
-			std::string authUrl = std::string("https://www.mixer.com/go?code=") + shortCode;
-			ShellExecuteA(0, 0, authUrl.c_str(), nullptr, nullptr, SW_SHOW);
-
-			// Wait for OAuth token response.
-			char refreshTokenBuffer[1024];
-			size_t refreshTokenLength = _countof(refreshTokenBuffer);
-			err = interactive_auth_wait_short_code(CLIENT_ID, nullptr, shortCodeHandle, refreshTokenBuffer, &refreshTokenLength);
-			if (err)
-			{
-				if (MIXER_ERROR_TIMED_OUT == err)
-				{
-					std::cout << "Authorization timed out, user did not approve access within the time limit." << std::endl;
-				}
-				else if (MIXER_ERROR_AUTH_DENIED == err)
-				{
-					std::cout << "User denied access." << std::endl;
-				}
-
-				return err;
-			}
-
-			// Cache the refresh token
-			config->RefreshToken = std::string(refreshTokenBuffer, refreshTokenLength);
-			break;
-		}
-	} while (config->RefreshToken.length() == 0);
-
-	// Write the config.
-	config->Write();
-
-	// Extract the authorization header from the refresh token.
-	char authBuffer[1024];
-	size_t authBufferLength = _countof(authBuffer);
-	err = interactive_auth_parse_refresh_token(config->RefreshToken.c_str(), authBuffer, &authBufferLength);
-	if (err)
-	{
-		return err;
-	}
-
-	// Success!
-	authToken = std::string(authBuffer, authBufferLength);
-	return 0;
-}
 
 int ChatUtil::update_control_pointers(chat_session_internal& session, const char* sceneId)
 {
@@ -755,7 +526,7 @@ user_object getUserInfo(chat_session_internal& session)
 	static std::string hostsUri = "https://mixer.com/api/v1/users/current";
 	mixer_internal::http_headers headers;
 	//headers.emplace("Content-Type", "application/json");
-	headers.emplace("Authorization", session.m_auth->authToken);
+	headers.emplace("Authorization", session.m_auth->getAuthToken());
 
 	// Critical Section: Http request.
 	{
@@ -813,7 +584,7 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 	static std::string hostsUri = "https://mixer.com/api/v1/chats/" + std::to_string(uo.channelid);
 	mixer_internal::http_headers headers;
 	headers.emplace("Content-Type", "application/json");
-	headers.emplace("Authorization", session.m_auth->authToken);
+	headers.emplace("Authorization", session.m_auth->getAuthToken());
 
 	// Critical Section: Http request.
 	{
@@ -1007,8 +778,33 @@ int ChatUtil::handle_control_changed(chat_session_internal& session, rapidjson::
 	return MIXER_OK;
 }
 
-void ChatUtil::register_method_handlers(chat_session_internal& session)
+// Wrapper function uses a global to remember the object:
+BotPtr chatBotSaved;
+
+int chat_bot_message_wrapper(chat_session_internal& csi, rapidjson::Document& d)
 {
+	return chatBotSaved->handle_chat_message(csi, d);
+}
+
+int chat_bot_reply_wrapper(chat_session_internal& csi, rapidjson::Document& d)
+{
+	return chatBotSaved->handle_reply(csi, d);
+}
+
+int chat_bot_user_join_wrapper(chat_session_internal& csi, rapidjson::Document& d)
+{
+	return chatBotSaved->handle_user_join(csi, d);
+}
+
+int chat_bot_user_leave_wrapper(chat_session_internal& csi, rapidjson::Document& d)
+{
+	return chatBotSaved->handle_user_leave(csi, d);
+}
+
+void ChatUtil::register_method_handlers(chat_session_internal& session, BotPtr chatBot)
+{
+	chatBotSaved = chatBot;
+
 	session.methodHandlers.emplace(RPC_METHOD_HELLO, handle_hello);
 	session.methodHandlers.emplace(RPC_METHOD_ON_READY_CHANGED, handle_ready);
 	session.methodHandlers.emplace(RPC_METHOD_ON_INPUT, handle_input);
@@ -1021,13 +817,13 @@ void ChatUtil::register_method_handlers(chat_session_internal& session)
 	session.methodHandlers.emplace(RPC_METHOD_UPDATE_SCENES, handle_scene_changed);
 
 	session.methodHandlers.emplace(RPC_EVENT_WELCOME_EVENT, handle_welcome_event);
-	session.methodHandlers.emplace(RPC_EVENT_CHAT_MESSAGE, handle_chat_message);
-	session.methodHandlers.emplace(RPC_EVENT_REPLY, handle_reply);
-	session.methodHandlers.emplace(RPC_EVENT_USER_JOIN, handle_user_join);
-	session.methodHandlers.emplace(RPC_EVENT_USER_LEAVE, handle_user_leave);
+	session.methodHandlers.emplace(RPC_EVENT_CHAT_MESSAGE, chat_bot_message_wrapper);
+	session.methodHandlers.emplace(RPC_EVENT_REPLY, chat_bot_reply_wrapper);
+	session.methodHandlers.emplace(RPC_EVENT_USER_JOIN, chat_bot_user_join_wrapper);
+	session.methodHandlers.emplace(RPC_EVENT_USER_LEAVE, chat_bot_user_leave_wrapper);
 }
 
-int ChatUtil::chat_open_session(chat_session* sessionPtr)
+int ChatUtil::chat_open_session(chat_session* sessionPtr, BotPtr chatBot)
 {
 	if (nullptr == sessionPtr)
 	{
@@ -1037,7 +833,7 @@ int ChatUtil::chat_open_session(chat_session* sessionPtr)
 	std::auto_ptr<chat_session_internal> session(new chat_session_internal());
 
 	// Register method handlers
-	register_method_handlers(*session);
+	register_method_handlers(*session, chatBot);
 
 	// Initialize Http and Websocket clients
 	session->http = mixer_internal::http_factory::make_http_client();
@@ -1086,297 +882,7 @@ int ChatUtil::get_interactive_hosts(chat_session_internal& session, std::vector<
 	return MIXER_OK;
 }
 
-void ChatUtil::chat_session_internal::handle_ws_open(const mixer_internal::websocket& socket, const std::string& message)
-{
-	(socket);
-	DnDPanel::Logger::Info("Websocket opened: " + message);
-	// Notify the outgoing thread.
-	this->wsOpen = true;
-}
-
-void ChatUtil::chat_session_internal::handle_ws_message(const mixer_internal::websocket& socket, const std::string& message)
-{
-	(socket);
-	if (this->shutdownRequested)
-	{
-		return;
-	}
-
-	// Parse the message to determine packet type.
-	std::shared_ptr<rapidjson::Document> messageJson = std::make_shared<rapidjson::Document>();
-	if (!messageJson->Parse(message.c_str(), message.length()).HasParseError())
-	{
-		if (!messageJson->HasMember(RPC_TYPE))
-		{
-			// Message does not conform to protocol, ignore it.
-			DnDPanel::Logger::Info("Incoming RPC packet missing type parameter.");
-			return;
-		}
-
-		std::string type = (*messageJson)[RPC_TYPE].GetString();
-		if (0 == type.compare(RPC_METHOD))
-		{
-			this->enqueue_incoming_event(std::make_shared<rpc_method_event>(std::move(messageJson)));
-		}
-		else if (0 == type.compare(RPC_REPLY))
-		{
-			std::string mj = mixer_internal::jsonStringify(*messageJson);
-			if ((*messageJson)[RPC_ID].IsString())
-			{
-				unsigned int id = std::stoi((*messageJson)[RPC_ID].GetString());
-				method_handler_c handlerFunc = nullptr;
-				bool executeImmediately = false;
-				// Critical Section: Check if there is a registered reply handler and if it's marked for immediate execution.
-				{
-					std::unique_lock<std::mutex> incomingLock(this->incomingMutex);
-					auto replyHandlerItr = this->replyHandlersById.find(id);
-					if (replyHandlerItr != this->replyHandlersById.end())
-					{
-						executeImmediately = replyHandlerItr->second.first;
-						handlerFunc.swap(replyHandlerItr->second.second);
-						this->replyHandlersById.erase(replyHandlerItr);
-					}
-				}
-
-				if (nullptr != handlerFunc)
-				{
-					if (executeImmediately)
-					{
-						handlerFunc(*this, *messageJson);
-					}
-					else
-					{
-						this->enqueue_incoming_event(std::make_shared<rpc_reply_event>(id, std::move(messageJson), handlerFunc));
-					}
-				}
-			}
-			
-		}
-		else if (0 == type.compare(RPC_EVENT))
-		{
-			this->enqueue_incoming_event(std::make_shared<rpc_event_event>(std::move(messageJson)));
-		}
-		else
-		{
-			DnDPanel::Logger::Error("Recived unknown type of message(" + type + ")");
-		}
-	}
-	else
-	{
-		DnDPanel::Logger::Error("Failed to parse websocket message: " + message);
-	}
-}
-
-void ChatUtil::chat_session_internal::handle_ws_close(const mixer_internal::websocket& socket, const unsigned short code, const std::string& message)
-{
-	(socket);
-	DnDPanel::Logger::Info("Websocket closed: " + message + " (" + std::to_string(code) + ")");
-}
-
-void ChatUtil::chat_session_internal::run_incoming_thread()
-{
-	auto onWsOpen = std::bind(&chat_session_internal::handle_ws_open, this, std::placeholders::_1, std::placeholders::_2);
-	auto onWsMessage = std::bind(&chat_session_internal::handle_ws_message, this, std::placeholders::_1, std::placeholders::_2);
-	auto onWsClose = std::bind(&chat_session_internal::handle_ws_close, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-
-	// Interactive hosts in retry order.
-	std::vector<std::string> hosts = { "wss://chat4-dal.mixer.com:443", "wss://chat1-dal.mixer.com:443", "wss://chat2-dal.mixer.com:443" };
-	std::vector<std::string>::iterator hostItr;
-	static unsigned int connectionRetryFrequency = DEFAULT_CONNECTION_RETRY_FREQUENCY_S;
-
-	while (!shutdownRequested)
-	{
-		hostItr = hosts.begin();
-
-
-		// Connect long running websocket.
-		DnDPanel::Logger::Info("Connecting to websocket: " + *hostItr);
-		this->ws->add_header("Content-Type", "application/json");
-		this->ws->add_header("Authorization", "Bearer " + this->authorization);
-
-		int err = this->ws->open(*hostItr, onWsOpen, onWsMessage, nullptr, onWsClose);
-		if (this->shutdownRequested)
-		{
-			break;
-		}
-
-		if (err)
-		{
-			std::string errorMessage;
-			if (!this->wsOpen)
-			{
-				errorMessage = "Failed to open websocket: " + *hostItr;
-				DnDPanel::Logger::Error(std::to_string(err) + " " + errorMessage);
-				enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_WS_CONNECT_FAILED, std::move(errorMessage))));
-			}
-			else
-			{
-				this->wsOpen = false;
-				errorMessage = "Lost connection to websocket: " + *hostItr;
-				// Since there was a successful connection, reset the connection retry frequency and hosts.
-				connectionRetryFrequency = DEFAULT_CONNECTION_RETRY_FREQUENCY_S;
-				enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_WS_CLOSED, errorMessage)));
-
-				// When the websocket closes, interactive state is fully reset. Clear any pending methods.
-				// Critical Section: Clear websocket methods.
-				{
-					std::lock_guard<std::mutex> outgoingLock(this->outgoingMutex);
-					std::queue<std::shared_ptr<chat_event_internal>> cleanOutgoingEvents;
-					while (!this->outgoingEvents.empty())
-					{
-						auto ev = this->outgoingEvents.front();
-						if (ev->type != chat_event_type_rpc_method)
-						{
-							cleanOutgoingEvents.emplace(std::move(ev));
-						}
-						this->outgoingEvents.pop();
-					}
-
-					if (!cleanOutgoingEvents.empty())
-					{
-						this->outgoingEvents.swap(cleanOutgoingEvents);
-					}
-				}
-
-				// Reset bootstraps
-				this->serverTimeOffsetCalculated = false;
-				this->groupsCached = false;
-				this->scenesCached = false;
-
-				enqueue_incoming_event(std::make_shared<state_change_event>(chat_connecting));
-			}
-		}
-
-		++hostItr;
-
-		// Once all the hosts have been tried, clear it and get a new list of hosts.
-		if (hostItr == hosts.end())
-		{
-			hosts = {};
-			std::this_thread::sleep_for(std::chrono::seconds(connectionRetryFrequency));
-			connectionRetryFrequency = std::min<unsigned int>(MAX_CONNECTION_RETRY_FREQUENCY_S, connectionRetryFrequency *= 2);
-		}
-	}
-}
-
 ChatUtil::state_change_event::state_change_event(chat_state currentState) : chat_event_internal(chat_event_type_state_change), currentState(currentState) {}
-
-void ChatUtil::chat_session_internal::run_outgoing_thread()
-{
-	std::queue<std::shared_ptr<chat_event_internal>> processingEvents;
-	// Run this thread continuously until shutdown is requested.
-	while (!shutdownRequested)
-	{
-		if (!processingEvents.empty())
-		{
-			// If the processing queue still contains messages after a loop executes, there must have been an error. Throttle retries by sleeping this thread whenever this happens.
-			std::this_thread::sleep_for(std::chrono::seconds(DEFAULT_CONNECTION_RETRY_FREQUENCY_S));
-		}
-		else
-		{
-			// Critical section: Check if there are any queued methods or requests that need to be sent.
-			std::unique_lock<std::mutex> lock(outgoingMutex);
-			if (this->outgoingEvents.empty())
-			{
-				outgoingCV.wait(lock);
-				// Since this thread just woke up, check if it has been signalled to stop.
-				if (shutdownRequested)
-				{
-					break;
-				}
-			}
-
-			processingEvents.swap(this->outgoingEvents);
-		}
-
-		// Process all http requests.
-		while (!processingEvents.empty() && !shutdownRequested)
-		{
-			auto ev = processingEvents.front();
-			switch (ev->type)
-			{
-			case chat_event_type_http_request:
-			{
-				auto request = reinterpret_cast<std::shared_ptr<http_request_event>&>(ev);
-				mixer_internal::http_response response;
-				int err = http->make_request(request->uri, request->verb, request->headers.empty() ? nullptr : &request->headers, request->body, response);
-				if (err)
-				{
-					std::string errorMessage = "Failed to '" + request->verb + "' to " + request->uri;
-					DnDPanel::Logger::Error(std::to_string(err) + " " + errorMessage);
-					enqueue_incoming_event(std::make_shared<error_event>(interactive_error(MIXER_ERROR_HTTP, std::move(errorMessage))));
-				}
-				else
-				{
-					// This request was successfully sent, remove it from the queue.
-					processingEvents.pop();
-
-					DnDPanel::Logger::Info("HTTP response received: (" + std::to_string(response.statusCode) + ") " + response.body);
-					// Critical Section: Find the response handler for this request.
-					http_response_handler handler = nullptr;
-					{
-						std::unique_lock<std::mutex> incomingLock(this->incomingMutex);
-						auto responseHandlerItr = this->httpResponseHandlers.find(request->packetId);
-						if (responseHandlerItr != this->httpResponseHandlers.end())
-						{
-							handler = std::move(responseHandlerItr->second);
-							this->httpResponseHandlers.erase(responseHandlerItr);
-						}
-					}
-
-					if (nullptr != handler)
-					{
-						enqueue_incoming_event(std::make_shared<http_response_event>(std::move(response), handler));
-					}
-				}
-
-				break;
-			}
-			case chat_event_type_rpc_method:
-			{
-				if (!this->wsOpen)
-				{
-					// If the websocket is not open, skip processing this event.
-					break;
-				}
-
-				auto methodEvent = reinterpret_cast<std::shared_ptr<rpc_method_event>&>(ev);
-				std::string packet = mixer_internal::jsonStringify(*(methodEvent->methodJson));
-				//DnDPanel::Logger::Info("Sending websocket message: " + packet);
-
-				// Critical Section: Only one thread may send a websocket message at a time.
-				int err = 0;
-				{
-					std::unique_lock<std::mutex> sendLock(this->websocketMutex);
-					err = this->ws->send(packet);
-				}
-
-				if (err)
-				{
-					std::string errorMessage = "Failed to send websocket message.";
-					DnDPanel::Logger::Error(std::to_string(err) + " " + errorMessage);
-					enqueue_incoming_event(std::make_shared<error_event>(interactive_error(MIXER_ERROR_WS_SEND_FAILED, std::move(errorMessage))));
-
-					// An error here implies that the connection is broken.
-					// Break out of the websocket method loop so that http requests are not starved and retry.
-					break;
-				}
-				else
-				{
-					// Method sent successfully.
-					processingEvents.pop();
-				}
-				break;
-			}
-			default:
-			{
-				assert(false);
-				break;
-			}
-			}
-		}
-	}
-}
 
 int ChatUtil::chat_connect(chat_session session, const char* auth, const char* versionId, const char* shareCode, bool setReady)
 {
