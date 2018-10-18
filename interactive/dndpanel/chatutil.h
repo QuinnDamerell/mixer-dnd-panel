@@ -23,7 +23,9 @@
 
 #include "chat_session_internal.h"
 
-namespace ChatUtil
+#include "Chat/chat_event_internal.h"
+
+namespace Chat
 {
 
 
@@ -95,7 +97,7 @@ namespace ChatUtil
 
 	void parse_participant(rapidjson::Value& participantJson, chat_participant& participant);
 
-	int handle_participants_change(ChatSession::chat_session_internal& session, rapidjson::Document& doc, ChatUtil::chat_participant_action action);
+	int handle_participants_change(ChatSession::chat_session_internal& session, rapidjson::Document& doc, Chat::chat_participant_action action);
 
 	int handle_participants_join(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
 

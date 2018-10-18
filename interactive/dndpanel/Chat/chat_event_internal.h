@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ChatUtil
+namespace Chat
 {
 	// Interactive event types in priority order.
 	enum chat_event_type

@@ -7,15 +7,15 @@
 
 #undef GetObject
 
-using namespace ChatUtil;
+using namespace Chat;
 using namespace ChatBot;
 using namespace ChatSession;
 using namespace rapidjson;
 
 
-ChatUtil::chat_event_internal::chat_event_internal(chat_event_type type) : type(type) {}
+Chat::chat_event_internal::chat_event_internal(chat_event_type type) : type(type) {}
 
-int ChatUtil::update_control_pointers(chat_session_internal& session, const char* sceneId)
+int Chat::update_control_pointers(chat_session_internal& session, const char* sceneId)
 {
 	std::unique_lock<std::shared_mutex> scenesLock(session.scenesMutex);
 	// Iterate through each scene and set up a pointer to each control.
@@ -49,7 +49,7 @@ int ChatUtil::update_control_pointers(chat_session_internal& session, const char
 	return MIXER_OK;
 }
 
-int ChatUtil::update_cached_control(chat_session_internal& session, chat_control& control, rapidjson::Value& controlJson)
+int Chat::update_cached_control(chat_session_internal& session, chat_control& control, rapidjson::Value& controlJson)
 {
 	// Critical Section: Replace a control in the scenes cache.
 	{
@@ -70,7 +70,7 @@ int ChatUtil::update_cached_control(chat_session_internal& session, chat_control
 	return MIXER_OK;
 }
 
-int ChatUtil::create_method_json(chat_session_internal& session, const std::string& method, on_get_params getParams, bool discard, unsigned int* id, std::shared_ptr<rapidjson::Document>& methodDoc)
+int Chat::create_method_json(chat_session_internal& session, const std::string& method, on_get_params getParams, bool discard, unsigned int* id, std::shared_ptr<rapidjson::Document>& methodDoc)
 {
 	std::shared_ptr<rapidjson::Document> doc(std::make_shared<rapidjson::Document>());
 	doc->SetObject();
@@ -99,7 +99,7 @@ int ChatUtil::create_method_json(chat_session_internal& session, const std::stri
 }
 
 // Queue a method to be sent out on the websocket. If handleImmediately is set to true, the handler will be called by the websocket receive thread rather than put on the reply queue.
-int ChatUtil::queue_method(chat_session_internal& session, const std::string& method, on_get_params getParams, method_handler_c onReply, const bool handleImmediately)
+int Chat::queue_method(chat_session_internal& session, const std::string& method, on_get_params getParams, method_handler_c onReply, const bool handleImmediately)
 {
 	std::shared_ptr<rapidjson::Document> methodDoc;
 	unsigned int packetId = 0;
@@ -120,7 +120,7 @@ int ChatUtil::queue_method(chat_session_internal& session, const std::string& me
 	return MIXER_OK;
 }
 
-int ChatUtil::send_ready_message(chat_session_internal& session, bool ready)
+int Chat::send_ready_message(chat_session_internal& session, bool ready)
 {
 	return queue_method(session, RPC_METHOD_READY, [&](rapidjson::Document::AllocatorType& allocator, rapidjson::Value& params)
 	{
@@ -128,7 +128,7 @@ int ChatUtil::send_ready_message(chat_session_internal& session, bool ready)
 	}, nullptr, false);
 }
 
-int ChatUtil::cache_scenes(chat_session_internal& session)
+int Chat::cache_scenes(chat_session_internal& session)
 {
 	DnDPanel::Logger::Info("Caching scenes.");
 
@@ -166,7 +166,7 @@ int ChatUtil::cache_scenes(chat_session_internal& session)
 	return MIXER_OK;
 }
 
-int ChatUtil::cache_groups(chat_session_internal& session)
+int Chat::cache_groups(chat_session_internal& session)
 {
 	DnDPanel::Logger::Info("Caching groups.");
 	RETURN_IF_FAILED(queue_method(session, RPC_METHOD_GET_GROUPS, nullptr, [](chat_session_internal& session, rapidjson::Document& reply) -> int
@@ -213,7 +213,7 @@ int ChatUtil::cache_groups(chat_session_internal& session)
 
 	Once this information is requested, the bootstraping state is checked on each reply. If all items are complete the caller is informed via a state change event and the client is ready.
 	*/
-int ChatUtil::bootstrap(chat_session_internal& session)
+int Chat::bootstrap(chat_session_internal& session)
 {
 	DnDPanel::Logger::Info("Checking bootstrap state.");
 	assert(interactive_connecting == session.state);
@@ -250,7 +250,7 @@ int ChatUtil::bootstrap(chat_session_internal& session)
 	return MIXER_OK;
 }
 
-int ChatUtil::update_server_time_offset(chat_session_internal& session)
+int Chat::update_server_time_offset(chat_session_internal& session)
 {
 	// Calculate the server time offset.
 	DnDPanel::Logger::Info("Requesting server time to calculate client offset.");
@@ -287,7 +287,7 @@ int ChatUtil::update_server_time_offset(chat_session_internal& session)
 	return MIXER_OK;
 }
 
-int ChatUtil::handle_hello(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_hello(chat_session_internal& session, rapidjson::Document& doc)
 {
 	(doc);
 	if (session.shutdownRequested)
@@ -298,7 +298,7 @@ int ChatUtil::handle_hello(chat_session_internal& session, rapidjson::Document& 
 	return bootstrap(session);
 }
 
-int ChatUtil::handle_input(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_input(chat_session_internal& session, rapidjson::Document& doc)
 {
 	if (!session.onInput)
 	{
@@ -406,7 +406,7 @@ int ChatUtil::handle_input(chat_session_internal& session, rapidjson::Document& 
 	return MIXER_OK;
 }
 
-void ChatUtil::parse_participant(rapidjson::Value& participantJson, chat_participant& participant)
+void Chat::parse_participant(rapidjson::Value& participantJson, chat_participant& participant)
 {
 	participant.id = participantJson[RPC_SESSION_ID].GetString();
 	participant.idLength = participantJson[RPC_SESSION_ID].GetStringLength();
@@ -421,7 +421,7 @@ void ChatUtil::parse_participant(rapidjson::Value& participantJson, chat_partici
 	participant.groupIdLength = participantJson[RPC_GROUP_ID].GetStringLength();
 }
 
-int ChatUtil::handle_participants_change(chat_session_internal& session, rapidjson::Document& doc, chat_participant_action action)
+int Chat::handle_participants_change(chat_session_internal& session, rapidjson::Document& doc, chat_participant_action action)
 {
 	if (!doc.HasMember(RPC_PARAMS) || !doc[RPC_PARAMS].HasMember(RPC_PARAM_PARTICIPANTS))
 	{
@@ -461,22 +461,22 @@ int ChatUtil::handle_participants_change(chat_session_internal& session, rapidjs
 	return MIXER_OK;
 }
 
-int ChatUtil::handle_participants_join(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_participants_join(chat_session_internal& session, rapidjson::Document& doc)
 {
 	return handle_participants_change(session, doc, participant_join_c);
 }
 
-int ChatUtil::handle_participants_leave(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_participants_leave(chat_session_internal& session, rapidjson::Document& doc)
 {
 	return handle_participants_change(session, doc, participant_leave_c);
 }
 
-int ChatUtil::handle_participants_update(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_participants_update(chat_session_internal& session, rapidjson::Document& doc)
 {
 	return handle_participants_change(session, doc, participant_update_c);
 }
 
-int ChatUtil::handle_ready(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_ready(chat_session_internal& session, rapidjson::Document& doc)
 {
 	if (!doc.HasMember(RPC_PARAMS) || !doc[RPC_PARAMS].HasMember(RPC_PARAM_IS_READY))
 	{
@@ -498,13 +498,13 @@ int ChatUtil::handle_ready(chat_session_internal& session, rapidjson::Document& 
 	return MIXER_OK;
 }
 
-int ChatUtil::handle_group_changed(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_group_changed(chat_session_internal& session, rapidjson::Document& doc)
 {
 	(doc);
 	return cache_groups(session);
 }
 
-int ChatUtil::handle_scene_changed(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_scene_changed(chat_session_internal& session, rapidjson::Document& doc)
 {
 	(doc);
 	return cache_scenes(session);
@@ -560,7 +560,7 @@ user_object getUserInfo(chat_session_internal& session)
 
 	return result;
 }
-int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_welcome_event(chat_session_internal& session, rapidjson::Document& doc)
 {
 	(doc);
 
@@ -636,7 +636,7 @@ int ChatUtil::handle_welcome_event(chat_session_internal& session, rapidjson::Do
 	return 0;
 }
 
-int ChatUtil::cache_new_control(chat_session_internal& session, const char* sceneId, chat_control& control, rapidjson::Value& controlJson)
+int Chat::cache_new_control(chat_session_internal& session, const char* sceneId, chat_control& control, rapidjson::Value& controlJson)
 {
 	// Critical Section: Add a control to the scenes cache.
 	{
@@ -672,12 +672,12 @@ int ChatUtil::cache_new_control(chat_session_internal& session, const char* scen
 		controls->PushBack(myControlJson, allocator);
 	}
 
-	RETURN_IF_FAILED(ChatUtil::update_control_pointers(session, sceneId));
+	RETURN_IF_FAILED(Chat::update_control_pointers(session, sceneId));
 
 	return MIXER_OK;
 }
 
-int ChatUtil::delete_cached_control(chat_session_internal& session, const char* sceneId, chat_control& control)
+int Chat::delete_cached_control(chat_session_internal& session, const char* sceneId, chat_control& control)
 {
 	// Critical Section: Erase the control if it exists on the scene.
 	{
@@ -721,7 +721,7 @@ int ChatUtil::delete_cached_control(chat_session_internal& session, const char* 
 	return MIXER_OK;
 }
 
-void ChatUtil::parse_control(rapidjson::Value& controlJson, chat_control& control)
+void Chat::parse_control(rapidjson::Value& controlJson, chat_control& control)
 {
 	control.id = controlJson[RPC_CONTROL_ID].GetString();
 	control.idLength = controlJson[RPC_CONTROL_ID].GetStringLength();
@@ -732,7 +732,7 @@ void ChatUtil::parse_control(rapidjson::Value& controlJson, chat_control& contro
 	}
 }
 
-int ChatUtil::handle_control_changed(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::handle_control_changed(chat_session_internal& session, rapidjson::Document& doc)
 {
 	if (!doc.HasMember(RPC_PARAMS)
 		|| !doc[RPC_PARAMS].HasMember(RPC_PARAM_CONTROLS) || !doc[RPC_PARAMS][RPC_PARAM_CONTROLS].IsArray()
@@ -801,7 +801,7 @@ int chat_bot_user_leave_wrapper(chat_session_internal& csi, rapidjson::Document&
 	return chatBotSaved->handle_user_leave(csi, d);
 }
 
-void ChatUtil::register_method_handlers(chat_session_internal& session, BotPtr chatBot)
+void Chat::register_method_handlers(chat_session_internal& session, BotPtr chatBot)
 {
 	chatBotSaved = chatBot;
 
@@ -823,7 +823,7 @@ void ChatUtil::register_method_handlers(chat_session_internal& session, BotPtr c
 	session.methodHandlers.emplace(RPC_EVENT_USER_LEAVE, chat_bot_user_leave_wrapper);
 }
 
-int ChatUtil::chat_open_session(chat_session* sessionPtr, BotPtr chatBot)
+int Chat::chat_open_session(chat_session* sessionPtr, BotPtr chatBot)
 {
 	if (nullptr == sessionPtr)
 	{
@@ -843,7 +843,7 @@ int ChatUtil::chat_open_session(chat_session* sessionPtr, BotPtr chatBot)
 	return MIXER_OK;
 }
 
-int ChatUtil::get_interactive_hosts(chat_session_internal& session, std::vector<std::string>& interactiveHosts)
+int Chat::get_interactive_hosts(chat_session_internal& session, std::vector<std::string>& interactiveHosts)
 {
 	DnDPanel::Logger::Info("Retrieving interactive hosts.");
 	mixer_internal::http_response response;
@@ -882,9 +882,9 @@ int ChatUtil::get_interactive_hosts(chat_session_internal& session, std::vector<
 	return MIXER_OK;
 }
 
-ChatUtil::state_change_event::state_change_event(chat_state currentState) : chat_event_internal(chat_event_type_state_change), currentState(currentState) {}
+Chat::state_change_event::state_change_event(chat_state currentState) : chat_event_internal(chat_event_type_state_change), currentState(currentState) {}
 
-int ChatUtil::chat_connect(chat_session session, const char* auth, const char* versionId, const char* shareCode, bool setReady)
+int Chat::chat_connect(chat_session session, const char* auth, const char* versionId, const char* shareCode, bool setReady)
 {
 	if (nullptr == auth || nullptr == versionId)
 	{
@@ -928,7 +928,7 @@ int ChatUtil::chat_connect(chat_session session, const char* auth, const char* v
 	return MIXER_OK;
 }
 
-int ChatUtil::route_method(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::route_method(chat_session_internal& session, rapidjson::Document& doc)
 {
 	std::string method = doc[RPC_METHOD].GetString();
 	auto itr = session.methodHandlers.find(method);
@@ -949,7 +949,7 @@ int ChatUtil::route_method(chat_session_internal& session, rapidjson::Document& 
 	return MIXER_OK;
 }
 
-int ChatUtil::route_event(chat_session_internal& session, rapidjson::Document& doc)
+int Chat::route_event(chat_session_internal& session, rapidjson::Document& doc)
 {
 	std::string method = doc[RPC_EVENT].GetString();
 	auto itr = session.methodHandlers.find(method);
@@ -970,7 +970,7 @@ int ChatUtil::route_event(chat_session_internal& session, rapidjson::Document& d
 	return MIXER_OK;
 }
 
-int ChatUtil::chat_run(chat_session session, unsigned int maxEventsToProcess)
+int Chat::chat_run(chat_session session, unsigned int maxEventsToProcess)
 {
 	if (nullptr == session)
 	{
@@ -1084,7 +1084,7 @@ int ChatUtil::chat_run(chat_session session, unsigned int maxEventsToProcess)
 	return MIXER_OK;
 }
 
-void ChatUtil::chat_close_session(chat_session session)
+void Chat::chat_close_session(chat_session session)
 {
 	if (nullptr != session)
 	{

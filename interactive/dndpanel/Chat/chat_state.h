@@ -1,4 +1,4 @@
-namespace ChatUtil
+namespace Chat
 {
 	enum chat_state
 	{

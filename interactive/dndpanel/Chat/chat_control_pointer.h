@@ -1,6 +1,6 @@
 #include <string>
 
-namespace ChatUtil
+namespace Chat
 {
 	struct chat_control_pointer
 	{

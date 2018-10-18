@@ -7,7 +7,7 @@
 
 using namespace std;
 using namespace RAPIDJSON_NAMESPACE;
-using namespace ChatUtil;
+using namespace Chat;
 using namespace ChatBot;
 using namespace ChatSession;
 
@@ -48,7 +48,7 @@ void chatDeleteTest_wrapper(chat_session_internal& session, rapidjson::Document&
 void Bot::xp(chat_session_internal& session, rapidjson::Document& doc)
 {
 	std::string username = doc["data"]["user_name"].GetString();
-	sendWhisper(session, username + " has: " + to_string(getXp(session, username)) + " xp.", username);
+	sendWhisper(session, username + " has: " + to_string(getViewerCurrentXp(session, username)) + " xp.", username);
 	deleteMessage(session, doc["data"]["id"].GetString());
 }
 
@@ -60,7 +60,7 @@ void xp_wrapper(chat_session_internal& session, rapidjson::Document& doc)
 void Bot::level(chat_session_internal& session, rapidjson::Document& doc)
 {
 	std::string username = doc["data"]["user_name"].GetString();
-	sendWhisper(session, username + " is level: " + getLevel(session, username) + ".", username);
+	sendWhisper(session, username + " is level: " + to_string(getLevel(session, username)) + ".", username);
 	deleteMessage(session, doc["data"]["id"].GetString());
 }
 
@@ -124,6 +124,168 @@ void job_wrapper(chat_session_internal& session, rapidjson::Document& doc)
 	saved_bot->job(session, doc);
 }
 
+void Bot::listJobs(chat_session_internal& session, rapidjson::Document& doc)
+{
+	std::string result = "";
+
+	bool isFirst = true;
+	for (auto &job : session.jobList->jobs) // access by reference to avoid copying
+	{
+		std::string key = job->BaseName;
+
+		if (!isFirst)
+		{
+			result += ", " + key;
+		}
+		else
+		{
+			result += key;
+			isFirst = false;
+		}
+	}
+
+	std::string username = doc["data"]["user_name"].GetString();
+	sendWhisper(session, username + " all jobs are: " + result + ".", username);
+	deleteMessage(session, doc["data"]["id"].GetString());
+}
+
+void listJobs_wrapper(chat_session_internal& session, rapidjson::Document& doc)
+{
+	saved_bot->listJobs(session, doc);
+}
+
+void Bot::listClasses(ChatSession::chat_session_internal& session, rapidjson::Document& doc)
+{
+	std::string result = "";
+
+	bool isFirst = true;
+	for (auto &classInfo : session.classList->classInfos) // access by reference to avoid copying
+	{
+		std::string key = classInfo->BaseName;
+
+		if (!isFirst)
+		{
+			result += ", " + key;
+		}
+		else
+		{
+			result += key;
+			isFirst = false;
+		}
+	}
+
+	std::string username = doc["data"]["user_name"].GetString();
+	sendWhisper(session, username + " all classes are: " + result + ".", username);
+	deleteMessage(session, doc["data"]["id"].GetString());
+}
+
+void listClasses_wrapper(chat_session_internal& session, rapidjson::Document& doc)
+{
+	saved_bot->listClasses(session, doc);
+}
+
+void Bot::selectJob(ChatSession::chat_session_internal& session, rapidjson::Document& doc)
+{
+	std::string username = doc["data"]["user_name"].GetString();
+
+	if (getJob(session, username) != "No Job")
+	{
+		sendWhisper(session, username + "You already have a job which is:" + getJob(session, username), username);
+	}
+	else
+	{
+		for (auto& v : doc["data"]["message"]["message"].GetArray())
+		{
+			istringstream iss(v.GetObject()["text"].GetString());
+			vector<string> tokens{ istream_iterator<string>{iss},
+						  istream_iterator<string>{} };
+
+			std::string selectedJob = tokens[1];
+			bool foundJob = false;
+			for (auto &job : session.jobList->jobs) // access by reference to avoid copying
+			{
+				std::string key = job->BaseName;
+
+				if (key == selectedJob)
+				{
+					for (auto& v : session.usersState["Users"].GetArray())
+					{
+						if (v["Name"].GetString() == username)
+						{
+							v["BaseJob"].SetString(StringRef(key.c_str()), doc.GetAllocator());
+							sendWhisper(session, username + "Setting your job to:" + key, username);
+							foundJob = true;
+						}
+					}
+				}
+			}
+			if (!foundJob)
+			{
+				sendWhisper(session, username + "The job you selected does not exist. Check listJobs to see to find a job.", username);
+			}
+
+		}
+	}
+	
+	deleteMessage(session, doc["data"]["id"].GetString());
+}
+
+void selectJob_wrapper(chat_session_internal& session, rapidjson::Document& doc)
+{
+	saved_bot->selectJob(session, doc);
+}
+
+void Bot::selectClass(ChatSession::chat_session_internal& session, rapidjson::Document& doc)
+{
+	std::string username = doc["data"]["user_name"].GetString();
+
+	if (getClass(session, username) != "No Class")
+	{
+		sendWhisper(session, username + "You already have a class which is:" + getClass(session, username), username);
+	}
+	else
+	{
+		for (auto& v : doc["data"]["message"]["message"].GetArray())
+		{
+			istringstream iss(v.GetObject()["text"].GetString());
+			vector<string> tokens{ istream_iterator<string>{iss},
+						  istream_iterator<string>{} };
+
+			std::string selectedClass = tokens[1];
+			bool foundClass = false;
+			for (auto &classInfo : session.classList->classInfos) // access by reference to avoid copying
+			{
+				std::string key = classInfo->BaseName;
+
+				if (key == selectedClass)
+				{
+					for (auto& v : session.usersState["Users"].GetArray())
+					{
+						if (v["Name"].GetString() == username)
+						{
+							v["BaseClass"].SetString(StringRef(key.c_str()), doc.GetAllocator());
+							sendWhisper(session, username + "Setting your class to:" + key, username);
+							foundClass = true;
+						}
+					}
+				}
+			}
+			if (!foundClass)
+			{
+				sendWhisper(session, username + "The class you selected does not exist. Check listClasss to see to find a class.", username);
+			}
+
+		}
+	}
+
+	deleteMessage(session, doc["data"]["id"].GetString());
+}
+
+void selectClass_wrapper(chat_session_internal& session, rapidjson::Document& doc)
+{
+	saved_bot->selectClass(session, doc);
+}
+
 Bot::Bot()
 {
 	Init();
@@ -135,7 +297,11 @@ Bot::Bot()
 	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!level", level_wrapper));
 	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!commands", commands_wrapper));
 	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!class", class_wrapper));
+	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!selectClass", selectClass_wrapper));
 	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!job", job_wrapper));
+	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!listJobs", listJobs_wrapper));
+	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!selectJob", selectJob_wrapper));
+	funcMap.insert(std::pair<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>("!listClasses", listClasses_wrapper));
 }
 
 void Bot::Init()
@@ -155,7 +321,9 @@ int Bot::handle_chat_message(chat_session_internal& session, rapidjson::Document
 	for (auto& v : doc["data"]["message"]["message"].GetArray())
 	{
 		std::string found_text = v.GetObject()["text"].GetString();
-		map<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>::iterator it = funcMap.find(found_text);
+		std::string command = found_text.substr(0, found_text.find(" "));
+
+		map<std::string, std::function<void(chat_session_internal&, rapidjson::Document&)>>::iterator it = funcMap.find(command);
 		std::function<void(chat_session_internal&, rapidjson::Document&)> b3;
 		if (it != funcMap.end())
 		{
@@ -194,49 +362,64 @@ void Bot::verifyUser(chat_session_internal& session, std::string Name)
 	{
 		Value o(kObjectType);
 		o.AddMember("Name", Name, session.usersState.GetAllocator());
-		o.AddMember("XP", 0, session.usersState.GetAllocator());
+		
 		o.AddMember("Strength", 0, session.usersState.GetAllocator());
 		o.AddMember("Dexterity", 0, session.usersState.GetAllocator());
 		o.AddMember("Constitution", 0, session.usersState.GetAllocator());
 		o.AddMember("Intelligence", 0, session.usersState.GetAllocator());
 		o.AddMember("Wisdom", 0, session.usersState.GetAllocator());
 		o.AddMember("Charisma", 0, session.usersState.GetAllocator());
-		o.AddMember("Class", "No Class", session.usersState.GetAllocator());
+		
+		o.AddMember("BaseClass", "No Class", session.usersState.GetAllocator());
+		o.AddMember("ClassCurrentXP", 0, session.usersState.GetAllocator());
+		o.AddMember("ClassTotalXP", 0, session.usersState.GetAllocator());
 		o.AddMember("ClassLevel", 0, session.usersState.GetAllocator());
-		o.AddMember("Job", "No Job", session.usersState.GetAllocator());
+		
+		o.AddMember("BaseJob", "No Job", session.usersState.GetAllocator());
+		o.AddMember("JobCurrentXP", 0, session.usersState.GetAllocator());
+		o.AddMember("JobTotalXP", 0, session.usersState.GetAllocator());
 		o.AddMember("JobLevel", 0, session.usersState.GetAllocator());
-		o.AddMember("ViewerLevel", "1", session.usersState.GetAllocator());
+		
+		o.AddMember("ViewerLevel", 0, session.usersState.GetAllocator());
+		o.AddMember("ViewerCurrentXP", 0, session.usersState.GetAllocator());
+		o.AddMember("ViewerTotalXP", 0, session.usersState.GetAllocator());
+		
+		o.AddMember("Currency", 0, session.usersState.GetAllocator());
+		
+		o.AddMember("Location", "Guild Town", session.usersState.GetAllocator());
+		
+		o.AddMember("Energy", 5, session.usersState.GetAllocator());
+		
 		session.usersState["Users"].PushBack(o, session.usersState.GetAllocator());
 	}
 }
 
-int Bot::getXp(chat_session_internal& session, std::string Name)
+int Bot::getViewerCurrentXp(chat_session_internal& session, std::string Name)
 {
 	verifyUser(session, Name);
 	for (auto& v : session.usersState["Users"].GetArray())
 	{
 		if (v["Name"].GetString() == Name)
 		{
-			return v["XP"].GetInt();
+			return v["ViewerCurrentXP"].GetInt();
 		}
 	}
+
+	return -1;
 }
 
-std::string Bot::getLevel(chat_session_internal& session, std::string Name)
+int Bot::getLevel(chat_session_internal& session, std::string Name)
 {
 	verifyUser(session, Name);
-	int xp = getXp(session, Name);
-	for (std::vector<std::pair<std::string, int>>::iterator it = session.levels.begin(); it != session.levels.end(); ++it)
+	for (auto& v : session.usersState["Users"].GetArray())
 	{
-		std::string name = it->first;
-		int levelMax = it->second;
-		if (xp < levelMax)
+		if (v["Name"].GetString() == Name)
 		{
-			return name;
+			return v["ViewerLevel"].GetInt();
 		}
 	}
 
-	return "No Level";
+	return -1;
 }
 
 std::string Bot::getClass(chat_session_internal& session, std::string Name)
@@ -246,9 +429,11 @@ std::string Bot::getClass(chat_session_internal& session, std::string Name)
 	{
 		if (v["Name"].GetString() == Name)
 		{
-			return v["Class"].GetString();
+			return v["BaseClass"].GetString();
 		}
 	}
+
+	return "No Class";
 }
 
 std::string Bot::getJob(chat_session_internal& session, std::string Name)
@@ -258,9 +443,11 @@ std::string Bot::getJob(chat_session_internal& session, std::string Name)
 	{
 		if (v["Name"].GetString() == Name)
 		{
-			return v["Job"].GetString();
+			return v["BaseJob"].GetString();
 		}
 	}
+
+	return "No Job";
 }
 
 void Bot::incrementXp(chat_session_internal& session, std::string Name, int xpGain)
@@ -270,8 +457,7 @@ void Bot::incrementXp(chat_session_internal& session, std::string Name, int xpGa
 	{
 		if (v["Name"].GetString() == Name)
 		{
-			v["XP"] = v["XP"].GetInt() + xpGain;
-			v["ViewerLevel"].SetString(getLevel(session, Name), session.usersState.GetAllocator());
+			v["ViewerCurrentXP"] = v["ViewerCurrentXP"].GetInt() + xpGain;
 			return;
 		}
 	}

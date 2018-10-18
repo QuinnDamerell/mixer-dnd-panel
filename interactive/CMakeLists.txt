@@ -37,15 +37,19 @@ add_executable(dnd-panel
 		dndpanel/chatbot.h
 		dndpanel/chat_session_internal.cpp
 		dndpanel/chat_session_internal.h
-		dndpanel/ChatUtil/auth.cpp
-		dndpanel/ChatUtil/auth.h
-		dndpanel/ChatUtil/chat_state.h
-		dndpanel/ChatUtil/chat_control_pointer.h
-		dndpanel/ChatUtil/chat_participant_action.h
-		dndpanel/ChatUtil/chat_control_event.h
-		dndpanel/ChatUtil/chat_participant.h
-		dndpanel/ChatUtil/chat_object.h
-		dndpanel/ChatUtil/chat_event_internal.h
+		dndpanel/Chat/auth.cpp
+		dndpanel/Chat/auth.h
+		dndpanel/Chat/chat_state.h
+		dndpanel/Chat/chat_control_pointer.h
+		dndpanel/Chat/chat_participant_action.h
+		dndpanel/Chat/chat_control_event.h
+		dndpanel/Chat/chat_participant.h
+		dndpanel/Chat/chat_object.h
+		dndpanel/Chat/chat_event_internal.h
+		dndpanel/Professions/jobs.h
+		dndpanel/Professions/jobs.cpp
+		dndpanel/Classes/classes.h
+		dndpanel/Classes/classes.cpp
         )
 
 set(DND_INCLUDES interactive rapidjson/include interactive-cpp/source/)

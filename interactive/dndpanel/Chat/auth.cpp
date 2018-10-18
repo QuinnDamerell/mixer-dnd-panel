@@ -7,7 +7,7 @@
 #define JSON_CODE "code"
 #define JSON_HANDLE "handle"
 
-using namespace ChatUtil;
+using namespace Chat;
 
 std::string Auth::getAuthToken()
 {

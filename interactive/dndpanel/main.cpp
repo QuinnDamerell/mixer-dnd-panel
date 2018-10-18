@@ -24,8 +24,11 @@
 #include <iomanip>
 #include <fstream>
 
+#include "Professions/jobs.h"
+#include "Classes/classes.h"
+
 using namespace DnDPanel;
-using namespace ChatUtil;
+using namespace Chat;
 using namespace ChatBot;
 using namespace ChatSession;
 
@@ -199,9 +202,18 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	);
 	
 	sessionInternal->levels = pairs;
-	
+
+	// Set up helper classes
+
+	Professions::jobslistPtr jobList = std::make_shared<Professions::jobslist>("config-files/jobs.json");
+	Classes::classInfoListPtr classList = std::make_shared<Classes::classInfoList>("config-files/classes.json");
+
+	sessionInternal->jobList = jobList;
+	sessionInternal->classList = classList;
+
 	sessionInternal->m_auth = auth;
 	sessionInternal->chatToConnect = channelToConnectTo;
+	
 
 	// Setup handlers
 	if ((err = SetupHandlers()))

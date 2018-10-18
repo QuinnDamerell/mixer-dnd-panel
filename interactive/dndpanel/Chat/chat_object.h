@@ -1,4 +1,4 @@
-namespace ChatUtil
+namespace Chat
 {
 	struct chat_object
 	{

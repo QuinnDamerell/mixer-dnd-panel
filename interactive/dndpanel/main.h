@@ -19,6 +19,8 @@
 #include "internal/json.h"
 #include "rapidjson/document.h"
 
+#include "Professions/jobs.h"
+
 #include <queue>
 
 using namespace RAPIDJSON_NAMESPACE;
@@ -32,7 +34,7 @@ namespace DnDPanel
         public IPanelLogicCallbacks
     {
     public:
-        int Run(ChatUtil::AuthPtr, DndConfigPtr);
+        int Run(Chat::AuthPtr, DndConfigPtr);
         void ParticipantsChangedHandler(interactive_participant_action action, const interactive_participant* participant);
         void ErrorHandler(int errorCode, const char* errorMessage, size_t errorMessageLength);
         void InputHandler(const interactive_input* input);
@@ -47,7 +49,7 @@ namespace DnDPanel
         PanelLogicPtr m_panelLogic;
         interactive_session m_session;
 
-		ChatUtil::AuthPtr m_auth;
+		Chat::AuthPtr m_auth;
 		DndConfigPtr m_config;
     };
 
@@ -56,14 +58,14 @@ namespace DnDPanel
 		public SharedFromThis
 	{
 	public:
-		int Run(ChatUtil::AuthPtr, ChatConfigPtr,int);
-		void ParticipantsChangedHandler(ChatUtil::chat_participant_action action, const ChatUtil::chat_participant* participant);
+		int Run(Chat::AuthPtr, ChatConfigPtr,int);
+		void ParticipantsChangedHandler(Chat::chat_participant_action action, const Chat::chat_participant* participant);
 		
 	private:
 		int SetupHandlers();
-		ChatUtil::AuthPtr m_auth;
+		Chat::AuthPtr m_auth;
 		ChatConfigPtr m_config;
-		ChatUtil::chat_session m_session;
+		Chat::chat_session m_session;
 
 	};	
 }

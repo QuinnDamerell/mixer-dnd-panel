@@ -1,6 +1,6 @@
 #include "interactivity.h"
 
-namespace ChatUtil
+namespace Chat
 {
 	struct chat_participant : public interactive_object
 	{

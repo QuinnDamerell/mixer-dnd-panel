@@ -22,9 +22,9 @@ namespace ChatBot
 
 		void incrementXp(ChatSession::chat_session_internal& session, std::string Name, int xpGain);
 
-		int getXp(ChatSession::chat_session_internal& session, std::string Name);
+		int getViewerCurrentXp(ChatSession::chat_session_internal& session, std::string Name);
 
-		std::string getLevel(ChatSession::chat_session_internal& session, std::string Name);
+		int getLevel(ChatSession::chat_session_internal& session, std::string Name);
 
 		std::string getClass(ChatSession::chat_session_internal& session, std::string Name);
 
@@ -58,7 +58,15 @@ namespace ChatBot
 
 		void cclass(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
 
+		void selectClass(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
 		void job(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void listJobs(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+		
+		void selectJob(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
+
+		void listClasses(ChatSession::chat_session_internal& session, rapidjson::Document& doc);
 
 		std::map<std::string, std::function<void(ChatSession::chat_session_internal&, rapidjson::Document&)>> funcMap;
 

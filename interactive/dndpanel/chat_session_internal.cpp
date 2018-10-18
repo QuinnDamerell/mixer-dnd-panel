@@ -2,7 +2,7 @@
 #include "chatutil.h"
 
 using namespace ChatSession;
-using namespace ChatUtil;
+using namespace Chat;
 
 chat_session_internal::chat_session_internal()
 	: callerContext(nullptr), isReady(false), state(chat_disconnected), shutdownRequested(false), packetId(0),

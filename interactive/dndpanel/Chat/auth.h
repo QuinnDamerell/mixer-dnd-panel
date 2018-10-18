@@ -3,7 +3,7 @@
 #include "..\common.h"
 #include "..\config.h"
 
-namespace ChatUtil
+namespace Chat
 {
 	DECLARE_SMARTPOINTER(Auth);
 	class Auth :

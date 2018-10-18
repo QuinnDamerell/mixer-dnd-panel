@@ -5,19 +5,22 @@
 
 #include "rapidjson/document.h"
 
-#include "ChatUtil/auth.h"
-#include "ChatUtil/chat_state.h"
-#include "ChatUtil/chat_control_pointer.h"
-#include "ChatUtil/chat_participant_action.h"
-#include "ChatUtil/chat_control_event.h"
-#include "ChatUtil/chat_participant.h"
-#include "ChatUtil/chat_object.h"
-#include "ChatUtil/chat_event_internal.h"
+#include "Chat/auth.h"
+#include "Chat/chat_state.h"
+#include "Chat/chat_control_pointer.h"
+#include "Chat/chat_participant_action.h"
+#include "Chat/chat_control_event.h"
+#include "Chat/chat_participant.h"
+#include "Chat/chat_object.h"
+#include "Chat/chat_event_internal.h"
 
 #include "interactivity.h"
 
 #include "internal/websocket.h"
 #include "internal/interactive_session.h"
+
+#include "Professions/jobs.h"
+#include "Classes/classes.h"
 
 namespace ChatSession
 {
@@ -26,7 +29,7 @@ namespace ChatSession
 	typedef void* chat_session;
 	typedef std::map<std::string, std::string> scenes_by_id;
 	typedef std::map<std::string, std::string> scenes_by_group;
-	typedef std::map<std::string, ChatUtil::chat_control_pointer> controls_by_id;
+	typedef std::map<std::string, Chat::chat_control_pointer> controls_by_id;
 	typedef std::map<std::string, std::shared_ptr<rapidjson::Document>> participants_by_id;
 	typedef std::pair<const mixer_result_code, const std::string> interactive_error;
 	typedef std::function<int(chat_session_internal&, rapidjson::Document&)> method_handler_c;
@@ -36,16 +39,16 @@ namespace ChatSession
 
 	struct compare_event_priority
 	{
-		bool operator()(const std::shared_ptr<ChatUtil::chat_event_internal> left, const std::shared_ptr<ChatUtil::chat_event_internal> right)
+		bool operator()(const std::shared_ptr<Chat::chat_event_internal> left, const std::shared_ptr<Chat::chat_event_internal> right)
 		{
 			return left->type > right->type;
 		}
 	};
-	typedef std::priority_queue<std::shared_ptr<ChatUtil::chat_event_internal>, std::vector<std::shared_ptr<ChatUtil::chat_event_internal>>, compare_event_priority> chat_event_queue;
+	typedef std::priority_queue<std::shared_ptr<Chat::chat_event_internal>, std::vector<std::shared_ptr<Chat::chat_event_internal>>, compare_event_priority> chat_event_queue;
 
-	typedef void(*on_state_changed_c)(void* context, chat_session session, ChatUtil::chat_state previousState, ChatUtil::chat_state newState);
-	typedef void(*on_participants_changed_c)(void* context, chat_session session, ChatUtil::chat_participant_action action, const ChatUtil::chat_participant* participant);
-	typedef void(*on_control_changed_c)(void* context, chat_session session, ChatUtil::chat_control_event eventType, const ChatUtil::chat_control* control);
+	typedef void(*on_state_changed_c)(void* context, chat_session session, Chat::chat_state previousState, Chat::chat_state newState);
+	typedef void(*on_participants_changed_c)(void* context, chat_session session, Chat::chat_participant_action action, const Chat::chat_participant* participant);
+	typedef void(*on_control_changed_c)(void* context, chat_session session, Chat::chat_control_event eventType, const Chat::chat_control* control);
 
 	struct chat_session_internal
 	{
@@ -53,13 +56,17 @@ namespace ChatSession
 		rapidjson::Document usersState;
 		chat_session_internal();
 
-		ChatUtil::AuthPtr m_auth;
+		// Helper lists
+		Professions::jobslistPtr jobList;
+		Classes::classInfoListPtr classList;
+
+		Chat::AuthPtr m_auth;
 
 		// Configuration
 		bool isReady;
 
 		// State
-		ChatUtil::chat_state state;
+		Chat::chat_state state;
 		std::string authorization;
 		std::string versionId;
 		std::string shareCode;
@@ -114,8 +121,8 @@ namespace ChatSession
 		std::thread outgoingThread;
 		std::mutex outgoingMutex;
 		std::condition_variable outgoingCV;
-		std::queue<std::shared_ptr<ChatUtil::chat_event_internal>> outgoingEvents;
-		void enqueue_outgoing_event(std::shared_ptr<ChatUtil::chat_event_internal>&& ev)
+		std::queue<std::shared_ptr<Chat::chat_event_internal>> outgoingEvents;
+		void enqueue_outgoing_event(std::shared_ptr<Chat::chat_event_internal>&& ev)
 		{
 			std::unique_lock<std::mutex> outgoingLock(this->outgoingMutex);
 			this->outgoingEvents.emplace(ev);
@@ -128,7 +135,7 @@ namespace ChatSession
 		chat_event_queue incomingEvents;
 		reply_handlers_by_id replyHandlersById;
 		std::map<unsigned int, http_response_handler> httpResponseHandlers;
-		void enqueue_incoming_event(std::shared_ptr<ChatUtil::chat_event_internal>&& ev)
+		void enqueue_incoming_event(std::shared_ptr<Chat::chat_event_internal>&& ev)
 		{
 			std::unique_lock<std::mutex> incomingLock(this->incomingMutex);
 			this->incomingEvents.emplace(ev);

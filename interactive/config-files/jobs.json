@@ -1,0 +1,14 @@
+{
+    "jobs" : 
+    [
+        {
+            "BaseName" : "Miner",
+            "Knowledge" : "Prospect",
+            "Resource" : "Ore",
+            "WorkText" : "goes to the mine and finds some ore.",
+            "Income" : {"1":1, "2":3, "3":5, "4":7, "5":9},
+            "LevelToRequiredXp" : {"1":100, "2":200, "3":300, "4":400, "5":500},
+            "LevelToName" : {"1":"Bronze Miner", "2":"Iron Miner", "3":"Steel Miner", "4":"Mith Miner", "5":"Adamint Miner"}
+        }
+    ]
+}
