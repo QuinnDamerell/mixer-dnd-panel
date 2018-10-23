@@ -26,11 +26,13 @@
 
 #include "Professions/jobs.h"
 #include "Classes/classes.h"
+#include "Quests/QuestManager.h"
 
 using namespace DnDPanel;
 using namespace Chat;
 using namespace ChatBot;
 using namespace ChatSession;
+using namespace Quests;
 
 void runChat(ChatRunnerPtr chatRunner, AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 {
@@ -182,6 +184,7 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	
 	// Setup Bot Class
 	BotPtr chatBot = std::make_shared<Bot>();
+	QuestManagerPtr questManager = std::make_shared<QuestManager>();
 	
 	// Setup chat ect
 	if ((err = chat_open_session(&m_session, chatBot)))

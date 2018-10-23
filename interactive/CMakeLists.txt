@@ -50,6 +50,8 @@ add_executable(dnd-panel
 		dndpanel/Professions/jobs.cpp
 		dndpanel/Classes/classes.h
 		dndpanel/Classes/classes.cpp
+		dndpanel/Quests/QuestManager.h
+		dndpanel/Quests/QuestManager.cpp
         )
 
 set(DND_INCLUDES interactive rapidjson/include interactive-cpp/source/)

@@ -343,6 +343,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.cpp" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.h" />
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="P:\mixer-dnd-panel\interactive\ZERO_CHECK.vcxproj">

@@ -31,6 +31,9 @@
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\common.h">
@@ -85,6 +88,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
