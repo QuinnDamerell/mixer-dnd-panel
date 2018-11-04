@@ -315,36 +315,42 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\common.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\main.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\main.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\logger.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\logger.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\config.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\config.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\panellogic.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\panellogic.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chatutil.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chatutil.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chat_session_internal.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chat_session_internal.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatbot.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatbot.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatutil.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatutil.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\common.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\config.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\config.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\logger.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\logger.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\main.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\main.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\panellogic.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\panellogic.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\ChatHandler.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\ChatHandler.h" />
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\auth.cpp" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\auth.h" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_state.h" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_control_pointer.h" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant_action.h" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_control_event.h" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant.h" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_object.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_control_pointer.h" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_event_internal.h" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_object.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant_action.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_state.h" />
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.h" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\Quest.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\Quest.h" />
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.h" />
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Users\User.cpp" />
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Users\User.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="P:\mixer-dnd-panel\interactive\ZERO_CHECK.vcxproj">

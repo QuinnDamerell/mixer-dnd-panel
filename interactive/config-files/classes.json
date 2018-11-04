@@ -6,6 +6,36 @@
             "MainStat" : "Strength",
             "LevelToRequiredXp" : {"1":100, "2":200, "3":300, "4":400, "5":500},
             "LevelToName" : {"1":"Fighter Apprentice", "2":"Fighter In Training", "3":"Fighter Journyman", "4":"Fighter Adventurer Follower", "5":"Fighter Adventure"}
+        },
+        {
+            "BaseName" : "Rouge",
+            "MainStat" : "Dexterity",
+            "LevelToRequiredXp" : {"1":100, "2":200, "3":300, "4":400, "5":500},
+            "LevelToName" : {"1":"Rouge Apprentice", "2":"Rouge In Training", "3":"Rouge Journyman", "4":"Rouge Adventurer Follower", "5":"Rouge Adventure"}
+        },
+        {
+            "BaseName" : "Barbarian",
+            "MainStat" : "Constitution",
+            "LevelToRequiredXp" : {"1":100, "2":200, "3":300, "4":400, "5":500},
+            "LevelToName" : {"1":"Barbarian Apprentice", "2":"Barbarian In Training", "3":"Barbarian Journyman", "4":"Barbarian Adventurer Follower", "5":"Barbarian Adventure"}
+        },
+        {
+            "BaseName" : "Wizard",
+            "MainStat" : "Intelligence",
+            "LevelToRequiredXp" : {"1":100, "2":200, "3":300, "4":400, "5":500},
+            "LevelToName" : {"1":"Wizard Apprentice", "2":"Wizard In Training", "3":"Wizard Journyman", "4":"Wizard Adventurer Follower", "5":"Wizard Adventure"}
+        },
+        {
+            "BaseName" : "Cleric",
+            "MainStat" : "Wisdom",
+            "LevelToRequiredXp" : {"1":100, "2":200, "3":300, "4":400, "5":500},
+            "LevelToName" : {"1":"Cleric Apprentice", "2":"Cleric In Training", "3":"Cleric Journyman", "4":"Cleric Adventurer Follower", "5":"Cleric Adventure"}
+        },
+        {
+            "BaseName" : "Bard",
+            "MainStat" : "Charisma",
+            "LevelToRequiredXp" : {"1":100, "2":200, "3":300, "4":400, "5":500},
+            "LevelToName" : {"1":"Bard Apprentice", "2":"Bard In Training", "3":"Bard Journyman", "4":"Bard Adventurer Follower", "5":"Bard Adventure"}
         }
     ]
 }

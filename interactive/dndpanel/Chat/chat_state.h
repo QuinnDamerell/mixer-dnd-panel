@@ -1,3 +1,5 @@
+#pragma once
+
 namespace Chat
 {
 	enum chat_state

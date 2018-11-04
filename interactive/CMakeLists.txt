@@ -21,37 +21,56 @@ add_library(interactive   STATIC
         interactive-cpp/source/interactivity.h
         )
 
+file(GLOB_RECURSE SRC_DNDPANEL
+	"dndpanel/dndpanel/*.cpp"
+	"dndpanel/dndpanel/*.h")
+
+source_group("dndpanel" FILES ${SRC_DNDPANEL})
+
+file(GLOB_RECURSE SRC_CHAT
+	"dndpanel/Chat/*.cpp"
+	"dndpanel/Chat/*.h")
+
+source_group("chat" FILES ${SRC_CHAT})
+
+file(GLOB_RECURSE SRC_CLASSES
+	"dndpanel/Classes/*.cpp"
+	"dndpanel/Classes/*.h")
+
+source_group("classes" FILES ${SRC_CLASSES})
+
+file(GLOB_RECURSE SRC_PROFESSIONS
+	"dndpanel/Professions/*.cpp"
+	"dndpanel/Professions/*.h")
+
+source_group("professions" FILES ${SRC_PROFESSIONS})
+
+file(GLOB_RECURSE SRC_QUESTS
+	"dndpanel/Quests/*.cpp"
+	"dndpanel/Quests/*.h")
+
+source_group("quest" FILES ${SRC_QUESTS})
+
+file(GLOB_RECURSE SRC_USERS
+	"dndpanel/Users/*.cpp"
+	"dndpanel/Users/*.h")
+
+source_group("users" FILES ${SRC_USERS})
+
+file(GLOB_RECURSE SRC_UTIL
+	"dndpanel/Util/*.cpp"
+	"dndpanel/Util/*.h")
+
+source_group("util" FILES ${SRC_UTIL})
+
 add_executable(dnd-panel
-        dndpanel/common.h
-        dndpanel/main.cpp
-        dndpanel/main.h
-        dndpanel/logger.cpp
-        dndpanel/logger.h
-        dndpanel/config.cpp
-        dndpanel/config.h
-        dndpanel/panellogic.cpp
-        dndpanel/panellogic.h
-		dndpanel/chatutil.cpp
-		dndpanel/chatutil.h
-		dndpanel/chatbot.cpp
-		dndpanel/chatbot.h
-		dndpanel/chat_session_internal.cpp
-		dndpanel/chat_session_internal.h
-		dndpanel/Chat/auth.cpp
-		dndpanel/Chat/auth.h
-		dndpanel/Chat/chat_state.h
-		dndpanel/Chat/chat_control_pointer.h
-		dndpanel/Chat/chat_participant_action.h
-		dndpanel/Chat/chat_control_event.h
-		dndpanel/Chat/chat_participant.h
-		dndpanel/Chat/chat_object.h
-		dndpanel/Chat/chat_event_internal.h
-		dndpanel/Professions/jobs.h
-		dndpanel/Professions/jobs.cpp
-		dndpanel/Classes/classes.h
-		dndpanel/Classes/classes.cpp
-		dndpanel/Quests/QuestManager.h
-		dndpanel/Quests/QuestManager.cpp
+        ${SRC_DNDPANEL}
+		${SRC_CHAT}
+		${SRC_CLASSES}
+		${SRC_PROFESSIONS}
+		${SRC_QUESTS}
+		${SRC_USERS}
+		${SRC_UTIL}
         )
 
 set(DND_INCLUDES interactive rapidjson/include interactive-cpp/source/)

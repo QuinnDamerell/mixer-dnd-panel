@@ -1,4 +1,8 @@
-#include "..\common.h"
+#pragma once
+
+#include "..\dndpanel\common.h"
+#include "Quest.h"
+#include <vector>
 
 namespace Quests
 {
@@ -8,5 +12,14 @@ namespace Quests
 	{
 	public:
 		QuestManager();
+
+		std::vector<QuestPtr> QuestList;
+
+		QuestPtr activeQuest;
+		bool isQuestActive;
+		bool questStarted;
+		int currentAdventurers;
+		int maxAdventurers;
+		std::vector<std::string> adventurers;
 	};
 }

@@ -1,108 +1,138 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\main.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chat_session_internal.cpp">
+      <Filter>dndpanel</Filter>
     </ClCompile>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\logger.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatbot.cpp">
+      <Filter>dndpanel</Filter>
     </ClCompile>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\config.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatutil.cpp">
+      <Filter>dndpanel</Filter>
     </ClCompile>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\panellogic.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\config.cpp">
+      <Filter>dndpanel</Filter>
     </ClCompile>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chatutil.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\logger.cpp">
+      <Filter>dndpanel</Filter>
     </ClCompile>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\main.cpp">
+      <Filter>dndpanel</Filter>
     </ClCompile>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\panellogic.cpp">
+      <Filter>dndpanel</Filter>
+    </ClCompile>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\ChatHandler.cpp">
+      <Filter>chat</Filter>
     </ClCompile>
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\auth.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>chat</Filter>
     </ClCompile>
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>classes</Filter>
+    </ClCompile>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.cpp">
+      <Filter>professions</Filter>
+    </ClCompile>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\Quest.cpp">
+      <Filter>quest</Filter>
     </ClCompile>
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>quest</Filter>
+    </ClCompile>
+    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\Users\User.cpp">
+      <Filter>users</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\common.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chat_session_internal.h">
+      <Filter>dndpanel</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\main.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatbot.h">
+      <Filter>dndpanel</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\logger.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatutil.h">
+      <Filter>dndpanel</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\config.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\common.h">
+      <Filter>dndpanel</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\panellogic.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\config.h">
+      <Filter>dndpanel</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chatutil.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\logger.h">
+      <Filter>dndpanel</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chatbot.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\main.h">
+      <Filter>dndpanel</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\chat_session_internal.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\panellogic.h">
+      <Filter>dndpanel</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\ChatHandler.h">
+      <Filter>chat</Filter>
     </ClInclude>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\auth.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_state.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_control_pointer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant_action.h">
-      <Filter>Header Files</Filter>
+      <Filter>chat</Filter>
     </ClInclude>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_control_event.h">
-      <Filter>Header Files</Filter>
+      <Filter>chat</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_object.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_control_pointer.h">
+      <Filter>chat</Filter>
     </ClInclude>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_event_internal.h">
-      <Filter>Header Files</Filter>
+      <Filter>chat</Filter>
     </ClInclude>
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_object.h">
+      <Filter>chat</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant.h">
+      <Filter>chat</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_participant_action.h">
+      <Filter>chat</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Chat\chat_state.h">
+      <Filter>chat</Filter>
     </ClInclude>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Classes\classes.h">
-      <Filter>Header Files</Filter>
+      <Filter>classes</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Professions\jobs.h">
+      <Filter>professions</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\Quest.h">
+      <Filter>quest</Filter>
     </ClInclude>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Quests\QuestManager.h">
-      <Filter>Header Files</Filter>
+      <Filter>quest</Filter>
+    </ClInclude>
+    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\Users\User.h">
+      <Filter>users</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="P:\mixer-dnd-panel\interactive\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{67582B9B-3B17-3AF5-927D-C4BD148024CD}</UniqueIdentifier>
+    <Filter Include="chat">
+      <UniqueIdentifier>{3A8739AE-9E4C-3866-BAEF-8C7E6E5847C6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{B4F43010-1081-35A8-BC78-C00273C63731}</UniqueIdentifier>
+    <Filter Include="classes">
+      <UniqueIdentifier>{9DD24015-163F-3B84-83AE-4161D4C235C1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dndpanel">
+      <UniqueIdentifier>{3F38FC06-7AA0-39A9-BF31-5A1E48665FA4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="professions">
+      <UniqueIdentifier>{6DE13190-DE35-3CB5-B269-D66DAD203272}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="quest">
+      <UniqueIdentifier>{F3827237-7DE9-383C-B743-E5DCAF5A9047}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="users">
+      <UniqueIdentifier>{977BE9FF-82F9-307B-95EB-A6EDFA0EC9C9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

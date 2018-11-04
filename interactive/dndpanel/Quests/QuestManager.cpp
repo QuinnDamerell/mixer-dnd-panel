@@ -9,32 +9,40 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <thread>
+#include <chrono>
+#include <thread>
+#include <stdlib.h>
 
 using namespace Quests;
 using namespace std;
 using namespace std::experimental::filesystem;
+using namespace rapidjson;
 
 QuestManager::QuestManager()
 {
-	cout << "Starting Constructor" << endl;
+	isQuestActive = false;
+	srand(time(NULL));
+
 	for (auto& dirEntry : recursive_directory_iterator("dndpanel\\Quests\\Recipies"))
 	{
 		std::stringstream buffer;
 		buffer << dirEntry << endl;
-		std::string filePath = buffer.str();
-		std::replace(filePath.begin(), filePath.end(), '\\', '/');
-		filePath.erase(std::remove(filePath.begin(), filePath.end(), '\n'), filePath.end());
-		cout << filePath << endl;
-		cout << "dndpanel/Quests/Recipies/castleraven.json" << endl;
+		string filePath = buffer.str();
+		replace(filePath.begin(), filePath.end(), '\\', '/');
+		filePath.erase(remove(filePath.begin(), filePath.end(), '\n'), filePath.end());
 		FILE* fp = fopen(filePath.c_str(), "rb"); // non-Windows use "r"
-		rapidjson::Document contents;
+		Document contents;
 
 
 		char readBuffer[65536];
-		rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+		FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 		contents.ParseStream(is);
 		fclose(fp);
 
-		cout << contents["Name"].GetString() << endl;
+		QuestPtr temp = make_shared<Quest>(contents);
+		QuestList.emplace_back(temp);
+
+		
 	}
 }

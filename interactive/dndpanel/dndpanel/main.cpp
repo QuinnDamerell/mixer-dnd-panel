@@ -24,9 +24,11 @@
 #include <iomanip>
 #include <fstream>
 
-#include "Professions/jobs.h"
-#include "Classes/classes.h"
-#include "Quests/QuestManager.h"
+#include "../Professions/jobs.h"
+#include "../Classes/classes.h"
+#include "../Quests/QuestManager.h"
+
+#include "../dndpanel/chatbot.h"
 
 using namespace DnDPanel;
 using namespace Chat;
@@ -153,25 +155,25 @@ void saveFile(rapidjson::Document& d)
 	fclose(fp);
 }
 
-void prepUserState(chat_session_internal* sessionInternal)
+void prepUserState(BotPtr chatBot)
 {
 	FILE* fp = fopen(userstatelocation.c_str() , "rb"); // non-Windows use "r"
 	
 	if (fp == nullptr)
 	{
-		sessionInternal->usersState.SetObject();
+		chatBot->usersState.SetObject();
 		return;
 	}
 	
 
 	char readBuffer[65536];
 	FileReadStream is(fp, readBuffer, sizeof(readBuffer));
-	sessionInternal->usersState.ParseStream(is);
+	chatBot->usersState.ParseStream(is);
 	fclose(fp);
 
-	if (sessionInternal->usersState.IsNull())
+	if (chatBot->usersState.IsNull())
 	{
-		sessionInternal->usersState.SetObject();
+		chatBot->usersState.SetObject();
 	}
 }
 
@@ -183,20 +185,20 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	m_config = config;
 	
 	// Setup Bot Class
-	BotPtr chatBot = std::make_shared<Bot>();
-	QuestManagerPtr questManager = std::make_shared<QuestManager>();
+	m_chatBot = std::make_shared<Bot>();
 	
 	// Setup chat ect
-	if ((err = chat_open_session(&m_session, chatBot)))
+	if ((err = m_chatBot->chatHandler->chat_open_session()))
 	{
 		Logger::Error("Failed to setup chat!");
 		return err;
 	}
-	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(m_session);
 
 	std::vector<std::pair<std::string, int>> pairs;
 	for (auto itr = config->levels.begin(); itr != config->levels.end(); ++itr)
+	{
 		pairs.push_back(*itr);
+	}
 
 	sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b)
 	{
@@ -204,19 +206,19 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	}
 	);
 	
-	sessionInternal->levels = pairs;
+	m_chatBot->levels = pairs;
 
+	m_chatBot->questManager = std::make_shared<QuestManager>();
 	// Set up helper classes
 
 	Professions::jobslistPtr jobList = std::make_shared<Professions::jobslist>("config-files/jobs.json");
 	Classes::classInfoListPtr classList = std::make_shared<Classes::classInfoList>("config-files/classes.json");
 
-	sessionInternal->jobList = jobList;
-	sessionInternal->classList = classList;
+	m_chatBot->jobList = jobList;
+	m_chatBot->classList = classList;
 
-	sessionInternal->m_auth = auth;
-	sessionInternal->chatToConnect = channelToConnectTo;
-	
+	m_chatBot->chatHandler->m_auth = auth;
+	m_chatBot->chatHandler->chatToConnect = channelToConnectTo;
 
 	// Setup handlers
 	if ((err = SetupHandlers()))
@@ -226,7 +228,7 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	}
 
 	// Connect
-	if ((err = chat_connect(m_session, m_auth->getAuthToken().c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
+	if ((err = m_chatBot->chatHandler->chat_connect(m_chatBot->chatHandler->m_auth->getAuthToken().c_str(), m_config->InteractiveId.c_str(), m_config->ShareCode.c_str(), true)))
 	{
 		Logger::Error("Failed to connect to chat!");
 		return err;
@@ -236,11 +238,11 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 	high_clock::time_point lastTickRun = high_clock::now();
 	
 	
-	prepUserState(sessionInternal);
+	prepUserState(m_chatBot);
 	for (;;)
 	{
-		// Run interactive
-		if ((err = chat_run(m_session, 500)))
+		// Run chat
+		if ((err = m_chatBot->chat_run(500)))
 		{
 			break;
 		}
@@ -251,7 +253,7 @@ int ChatRunner::Run(AuthPtr auth, ChatConfigPtr config, int channelToConnectTo)
 
 		// Save the local state to disk
 		
-		saveFile(sessionInternal->usersState);
+		saveFile(m_chatBot->usersState);
 
 		// Sleepy time.
 		std::this_thread::sleep_for(std::chrono::milliseconds(16));
@@ -396,47 +398,29 @@ int DndRunner::SetupHandlers()
     return err;
 }
 
-int chat_set_session_context(chat_session session, void* context)
+int chat_set_session_context(BotPtr chatBot, void* context)
 {
-	if (nullptr == session)
-	{
-		return MIXER_ERROR_INVALID_POINTER;
-	}
-
-	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
-	sessionInternal->callerContext = context;
+	chatBot->chatHandler->callerContext = context;
 
 	return MIXER_OK;
 }
 
-int chat_set_participants_changed_handler(chat_session session, on_participants_changed_c onParticipantsChanged)
+int chat_set_participants_changed_handler(BotPtr chatBot, on_chat_participants_changed_c onParticipantsChanged)
 {
-	if (nullptr == session)
-	{
-		return MIXER_ERROR_INVALID_POINTER;
-	}
-
-	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
-	sessionInternal->onParticipantsChanged = onParticipantsChanged;
+	chatBot->chatHandler->onParticipantsChanged = onParticipantsChanged;
 
 	return MIXER_OK;
 }
 
 // Handler registration
-int chat_set_error_handler(chat_session session, on_error onError)
+int chat_set_error_handler(BotPtr chatBot, Chat::on_chat_error onError)
 {
-	if (nullptr == session)
-	{
-		return MIXER_ERROR_INVALID_POINTER;
-	}
-
-	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
-	sessionInternal->onError = onError;
+	chatBot->chatHandler->onError = onError;
 
 	return MIXER_OK;
 }
 
-void participants_changed_handler_c(void* context, chat_session session, chat_participant_action action, const chat_participant* participant)
+void participants_changed_handler_c(void* context, chat_participant_action action, const chat_participant* participant)
 {
 	if (context)
 	{
@@ -445,17 +429,20 @@ void participants_changed_handler_c(void* context, chat_session session, chat_pa
 	}
 }
 
-int chat_set_input_handler(chat_session session, on_input onInput)
+int chat_set_input_handler(BotPtr chatBot, on_input onInput)
 {
-	if (nullptr == session)
-	{
-		return MIXER_ERROR_INVALID_POINTER;
-	}
-
-	chat_session_internal* sessionInternal = reinterpret_cast<chat_session_internal*>(session);
-	sessionInternal->onInput = onInput;
+	chatBot->chatHandler->onInput = onInput;
 
 	return MIXER_OK;
+}
+
+void handle_chat_error(void* context, int errorCode, const char* errorMessage, size_t errorMessageLength)
+{
+	if (context)
+	{
+		DndRunner* runner = (DndRunner*)context;
+		runner->ErrorHandler(errorCode, errorMessage, errorMessageLength);
+	}
 }
 
 int ChatRunner::SetupHandlers()
@@ -463,18 +450,18 @@ int ChatRunner::SetupHandlers()
 	int err = 0;
 
 	// Set this object as the context.
-	err = chat_set_session_context(m_session, this);
+	err = chat_set_session_context(m_chatBot, this);
 	if (err) return err;
 
 	// Register a callback for errors.
-	err = chat_set_error_handler(m_session, handle_error);
+	err = chat_set_error_handler(m_chatBot, handle_chat_error);
 	if (err) return err;
 
-	err = chat_set_participants_changed_handler(m_session, participants_changed_handler_c);
+	err = chat_set_participants_changed_handler(m_chatBot, participants_changed_handler_c);
 	if (err) return err;
 
 	// Register a callback for button presses.
-	err = chat_set_input_handler(m_session, input_handler);
+	err = chat_set_input_handler(m_chatBot, input_handler);
 	if (err) return err;
 
 	return err;

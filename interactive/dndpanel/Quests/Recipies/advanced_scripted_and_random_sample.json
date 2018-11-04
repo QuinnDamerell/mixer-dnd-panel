@@ -1,0 +1,123 @@
+{
+  "Name": "Castle Ravenall scripted",
+  "Description": "Save the princess from the Raven Castle",
+  "SuccessText": "You clear the castle and save the princess!",
+  "FailText": "The party is defeated and must regroup",
+  "Slots":0,
+  "Steps" : [
+    {
+      "StepNumber": 1,
+      "RandomEvents": 0,
+      "ToSucced" :0,
+      "Events": 
+      [
+        {
+          "Text": "The Party Fights Guards",
+          "SuccessText": "The party defeated the guards",
+          "FailText": "The party escapes the guards but takes a beating",
+          "SuccessRateIfMet": 80,
+          "SuccessRateIfNotMet": 50,
+          "Requirements": 
+          {
+            "Strenght": 1
+          }
+        }
+      ]
+    },
+    {
+      "StepNumber": 2,
+      "RandomEvents": 1,
+      "ToSucced" :1,
+      "Events": 
+      [
+        {
+          "Text": "Escape trap room",
+          "SuccessText": "The party deactivates the trap",
+          "FailText": "The party gets cought in the trap and suffers some damage",
+          "SuccessRateIfMet": 70,
+          "SuccessRateIfNotMet": 40,
+          "Requirements": 
+          {
+            "Dexterity": 1
+          }
+        },
+        {
+          "Text": "Solve Hard puzzle",
+          "SuccessText": "The party solves the puzzle and can move forward",
+          "FailText": "The party couldn't solve the puzzle and will have to find another way forward",
+          "SuccessRateIfMet": 80,
+          "SuccessRateIfNotMet": 50,
+          "Requirements": 
+          {
+            "Intelegence": 1
+          }
+        }
+      ]
+    },
+    {
+      "StepNumber": 3,
+      "RandomEvents": 2,
+      "ToSucced" :1,
+      "Events": 
+      [    
+        {
+          "Text": "Room filled with food!",
+          "SuccessText": "The party survied the trick food",
+          "FailText": "The party ate poisend food. Who could have forseen that!",
+          "SuccessRateIfMet": 90,
+          "SuccessRateIfNotMet": 70,
+          "Requirements": 
+          {
+            "Constituation": 1
+          }
+        },
+        {
+          "Text": "Navigate maze",
+          "SuccessText": "The party escaped the maze",
+          "FailText": "The party got so lost and ended up at the beggining. Time to find a new way.",
+          "SuccessRateIfMet": 70,
+          "SuccessRateIfNotMet": 50,
+          "Requirements": 
+          {
+            "Wisdom": 1
+          }
+        },
+        {
+          "Text": "Talk way past guards",
+          "SuccessText": "The party was able to coninvce the guards that they are contracters and should be let by",
+          "FailText": "The party was unable to convince the guards and are now being chased by them!",
+          "SuccessRateIfMet": 60,
+          "SuccessRateIfNotMet": 30,
+          "Requirements": 
+          {
+            "Charaimsa": 1
+          }
+        }
+      ]
+    },
+    {
+      "StepNumber": 4,
+      "RandomEvents": 0,
+      "ToSucced" :0,
+      "Events": 
+      [        
+        {
+          "Text": "Beat boss",
+          "SuccessText": "The party defeated the boss the rest of this should be easy!",
+          "FailText": "The party was defeated by the boss. He is the boss you know.",
+          "SuccessRateIfMet": 75,
+          "SuccessRateIfNotMet": 25,
+          "Requirements": 
+          {
+            "Strength": 1,
+            "Dexterity": 1,
+            "Constituion": 1,
+            "Wisdom": 1,
+            "Intelegence": 1,
+            "Chrasima": 1
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -19,7 +19,9 @@
 #include "internal/json.h"
 #include "rapidjson/document.h"
 
-#include "Professions/jobs.h"
+#include "../Professions/jobs.h"
+
+#include "chatbot.h"
 
 #include <queue>
 
@@ -65,7 +67,7 @@ namespace DnDPanel
 		int SetupHandlers();
 		Chat::AuthPtr m_auth;
 		ChatConfigPtr m_config;
-		Chat::chat_session m_session;
+		ChatBot::BotPtr m_chatBot;
 
 	};	
 }
