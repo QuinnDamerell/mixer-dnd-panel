@@ -7,7 +7,6 @@
 #include "interactivity.h"
 
 //nvs
-#include "chatutil.h"
 
 #include <mutex>
 #include <shared_mutex>

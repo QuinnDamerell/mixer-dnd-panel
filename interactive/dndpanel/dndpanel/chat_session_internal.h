@@ -5,7 +5,6 @@
 
 #include "rapidjson/document.h"
 
-#include "../Chat/auth.h"
 #include "../Chat/chat_state.h"
 #include "../Chat/chat_control_pointer.h"
 #include "../Chat/chat_participant_action.h"

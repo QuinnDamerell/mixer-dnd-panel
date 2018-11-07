@@ -17,62 +17,23 @@
 #include "chat_state.h"
 #include "internal/websocket.h"
 
-//#include "chat_participant_action.h"
-
 #include "chat_event_internal.h"
 
-
-
 #include "internal/interactive_session.h"
+
+#include "auth.h"
+#include "chat_participant_action.h"
+#include "chat_participant.h"
 
 
 namespace Chat
 {
 
-	#define RPC_EVENT_WELCOME_EVENT "WelcomeEvent"
-	#define RPC_EVENT_CHAT_MESSAGE "ChatMessage"
-	#define RPC_EVENT_REPLY "reply"
-	#define RPC_EVENT_USER_JOIN "UserJoin"
-	#define RPC_EVENT_USER_LEAVE "UserLeave"
 	#define RPC_EVENT "event"
-
-	enum chat_participant_action
-	{
-		participant_join_c,
-		participant_leave_c,
-		participant_update_c
-	};
-
-	DECLARE_SMARTPOINTER(Auth);
-	class Auth :
-		public SharedFromThis
-	{
-	public:
-		int EnsureAuth(DnDPanel::DndConfigPtr);
-		int EnsureAuth(DnDPanel::ChatConfigPtr);
-		std::string getAuthToken();
-
-	private:
-		int chat_auth_get_short_code(const char* clientId, const char* clientSecret, char* shortCode, size_t* shortCodeLength, char* shortCodeHandle, size_t* shortCodeHandleLength);
-		std::string authToken;
-	};
-
-	struct chat_participant : public interactive_object
-	{
-		unsigned int userId;
-		const char* userName;
-		size_t usernameLength;
-		unsigned int level;
-		unsigned long long lastInputAtMs;
-		unsigned long long connectedAtMs;
-		bool disabled;
-		const char* groupId;
-		size_t groupIdLength;
-	};
 
 	DECLARE_SMARTPOINTER(ChatHandler);
 
-	typedef std::pair<const mixer_result_code, const std::string> interactive_error;
+	typedef std::pair<const mixer_result_code, const std::string> chat_error;
 	typedef std::function<int(ChatHandlerPtr chatHandler, rapidjson::Document&)> method_handler_c;
 	typedef std::map<unsigned int, std::pair<bool, method_handler_c>> reply_handlers_by_id;
 	typedef std::function<int(const mixer_internal::http_response&)> http_response_handler;
@@ -80,6 +41,27 @@ namespace Chat
 	typedef std::map<std::string, method_handler_c> method_handlers_by_method_c;
 	typedef void(*on_chat_participants_changed_c)(void* context, Chat::chat_participant_action action, const chat_participant* participant);
 	typedef std::function<int(const mixer_internal::http_response&)> http_response_handler;
+
+	typedef std::map<std::string, std::string> http_headers;
+
+	struct rpc_event_event : chat_event_internal
+	{
+		const std::shared_ptr<rapidjson::Document> methodJson;
+		rpc_event_event(std::shared_ptr<rapidjson::Document>&& methodJson) : chat_event_internal(chat_event_type_rpc_event), methodJson(methodJson) {}
+	};
+
+	struct http_request_event : chat_event_internal
+	{
+		const unsigned int packetId;
+		const std::string uri;
+		const std::string verb;
+		const std::map<std::string, std::string> headers;
+		const std::string body;
+		http_request_event(const unsigned int packetId, const std::string& uri, const std::string& verb, const http_headers* headers, const std::string* body) :
+			chat_event_internal(chat_event_type_http_request), packetId(packetId), uri(uri), verb(verb), headers(nullptr == headers ? http_headers() : *headers), body(nullptr == body ? std::string() : *body)
+		{
+		}
+	};
 
 	struct rpc_method_event : chat_event_internal
 	{

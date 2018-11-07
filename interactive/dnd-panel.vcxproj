@@ -319,8 +319,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chat_session_internal.h" />
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatbot.cpp" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatbot.h" />
-    <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatutil.cpp" />
-    <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\chatutil.h" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\common.h" />
     <ClCompile Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\config.cpp" />
     <ClInclude Include="P:\mixer-dnd-panel\interactive\dndpanel\dndpanel\config.h" />

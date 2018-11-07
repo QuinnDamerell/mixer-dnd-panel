@@ -1,11 +1,19 @@
 #include "ChatHandler.h"
 
 #include "internal/json.h"
-#include "../dndpanel/chatutil.h"
 
 using namespace Chat;
 using namespace std;
 using namespace rapidjson;
+
+#define RPC_EVENT_WELCOME_EVENT "WelcomeEvent"
+#define RPC_EVENT_CHAT_MESSAGE "ChatMessage"
+#define RPC_EVENT_REPLY "reply"
+#define RPC_EVENT_USER_JOIN "UserJoin"
+#define RPC_EVENT_USER_LEAVE "UserLeave"
+
+#define DEFAULT_CONNECTION_RETRY_FREQUENCY_S 1
+#define MAX_CONNECTION_RETRY_FREQUENCY_S 8
 
 ChatHandler::ChatHandler()
 	: shutdownRequested(false), 
@@ -180,7 +188,7 @@ void ChatHandler::run_outgoing_thread()
 				{
 					std::string errorMessage = "Failed to '" + request->verb + "' to " + request->uri;
 					DnDPanel::Logger::Error(std::to_string(err) + " " + errorMessage);
-					enqueue_incoming_event(std::make_shared<error_event>(interactive_error(MIXER_ERROR_HTTP, std::move(errorMessage))));
+					enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_HTTP, std::move(errorMessage))));
 				}
 				else
 				{
@@ -231,7 +239,7 @@ void ChatHandler::run_outgoing_thread()
 				{
 					std::string errorMessage = "Failed to send websocket message.";
 					DnDPanel::Logger::Error(std::to_string(err) + " " + errorMessage);
-					enqueue_incoming_event(std::make_shared<error_event>(interactive_error(MIXER_ERROR_WS_SEND_FAILED, std::move(errorMessage))));
+					enqueue_incoming_event(std::make_shared<error_event>(chat_error(MIXER_ERROR_WS_SEND_FAILED, std::move(errorMessage))));
 
 					// An error here implies that the connection is broken.
 					// Break out of the websocket method loop so that http requests are not starved and retry.
@@ -579,3 +587,5 @@ int ChatHandler::chat_connect(const char* auth, const char* versionId, const cha
 }
 
 state_change_event::state_change_event(chat_state currentState) : chat_event_internal(chat_event_type_state_change), currentState(currentState) {}
+
+chat_event_internal::chat_event_internal(chat_event_type type) : type(type) {}

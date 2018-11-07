@@ -16,7 +16,6 @@
 #include "rapidjson/filewritestream.h"
 #include <rapidjson/writer.h>
 
-#include "chatutil.h"
 #include "chatbot.h"
 #include "chat_session_internal.h"
 

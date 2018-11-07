@@ -264,7 +264,9 @@ void Bot::selectClass(rapidjson::Document& doc)
 						if (v["Name"].GetString() == username)
 						{
 							v["BaseClass"].SetString(StringRef(key.c_str()), doc.GetAllocator());
-							v[classInfo->MainStat] = v[classInfo->MainStat].GetInt() + 1;
+							auto stats = v["Stats"].GetObject();
+							stats[classInfo->MainStat].SetInt(1);
+							
 							chatHandler->sendWhisper(username + "Setting your class to:" + key, username);
 							foundClass = true;
 						}
@@ -361,7 +363,7 @@ void Bot::startQuest(rapidjson::Document& doc)
 		for (auto& v : doc["data"]["message"]["message"].GetArray())
 		{
 			std::string input = v.GetObject()["text"].GetString();
-			std::string selectedQuest = input.substr(input.find("!describeQuest ") + 15);
+			std::string selectedQuest = input.substr(input.find("!startQuest ") + 12);
 			std::cout << input << std::endl;
 			std::cout << selectedQuest << std::endl;
 			bool foundJob = false;
@@ -379,6 +381,10 @@ void Bot::startQuest(rapidjson::Document& doc)
 					chatHandler->sendMessage(username + " has started the quest " + quest->Name + ". To join the quest do !joinQuest. " + amountToJoin);
 					StartQuest(quest, username);
 				}
+			}
+			if (questManager->isQuestActive != true)
+			{
+				chatHandler->sendWhisper(username + " could not find a quest with name : " + selectedQuest + ". To start a quest run !listQuests to try to find the right name", username);
 			}
 		}
 	}
@@ -596,10 +602,50 @@ void Bot::incrementXp(std::string Name, int xpGain)
 	}
 }
 
+bool Bot::RunStep(Quests::QuestStepPtr questStep, map<string, int> totalUserStats, int step)
+{
+	map<string, int> questRequirments;
+	for (std::map<string, int>::iterator it = questStep->eventList[step]->Requirments.begin(); it != questStep->eventList[step]->Requirments.end(); ++it)
+	{
+		if (questRequirments.count(it->first) == 0)
+		{
+			questRequirments[it->first] = 0;
+		}
+		questRequirments[it->first] = questRequirments[it->first] + it->second;
+	}
+
+	bool met = true;
+
+	for (std::map<string, int>::iterator it = questRequirments.begin(); it != questRequirments.end(); ++it)
+	{
+		if (totalUserStats.count(it->first) == 0 || totalUserStats[it->first] < it->second)
+		{
+			met = false;
+		}
+	}
+	chatHandler->sendMessage(questStep->eventList[step]->Text);
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+	int chance = rand() % 100 + 1;
+
+
+	if ((met && chance <= questStep->eventList[step]->SuccessRateIfMet) || (!met && chance <= questStep->eventList[step]->SuccessRateIfNotMet))
+	{
+		chatHandler->sendMessage(questStep->eventList[step]->SuccessText);
+		return true;
+	}
+	else
+	{
+		chatHandler->sendMessage(questStep->eventList[step]->FailText);
+		return false;
+	}
+}
+
 void Bot::RunQuest(Quests::QuestPtr quest)
 {
 	std::this_thread::sleep_for(std::chrono::seconds(30));
 	chatHandler->sendMessage("Starting quest. When last we left our adventures");
+	chatHandler->sendMessage(quest->Description);
+	questManager->questStarted = true;
 
 	bool questFailed = false;
 
@@ -618,57 +664,52 @@ void Bot::RunQuest(Quests::QuestPtr quest)
 		}
 	}
 
-	for (int i = 1; i < quest->questStepList.size(); i++)
+	for (int i = 0; i < quest->questStepList.size(); i++)
 	{
 		Quests::QuestStepPtr questStep = quest->questStepList[i];
 		if (!questFailed)
 		{
 			if (questStep->RandomEvents == 0)
 			{
-				map<string, int> questRequirments;
-				for (std::map<string, int>::iterator it = questStep->eventList[0]->Requirments.begin(); it != questStep->eventList[0]->Requirments.end(); ++it)
+				bool stepResult = RunStep(questStep, totalUserStats, 0);
+				if (!stepResult)
 				{
-					if (questRequirments.count(it->first) == 0)
-					{
-						questRequirments[it->first] = 0;
-					}
-					questRequirments[it->first] = questRequirments[it->first] + it->second;
-				}
-
-				bool met = true;
-
-				for (std::map<string, int>::iterator it = questRequirments.begin(); it != questRequirments.end(); ++it)
-				{
-					if (totalUserStats.count(it->first) == 0 || totalUserStats[it->first] < it->second)
-					{
-						met = false;
-					}
-				}
-				chatHandler->sendMessage(questStep->eventList[0]->Text);
-				std::this_thread::sleep_for(std::chrono::seconds(5));
-				int chance = rand() % 100 + 1;
-
-
-				if ((met && chance <= questStep->eventList[0]->SuccessRateIfMet) || (!met && chance <= questStep->eventList[0]->SuccessRateIfNotMet))
-				{
-					chatHandler->sendMessage(questStep->eventList[0]->SuccessText);
-				}
-				else
-				{
-					chatHandler->sendMessage(questStep->eventList[0]->FailText);
 					questFailed = true;
 				}
-
 			}
 			else
 			{
-				for (int j = 0; j < questStep->RandomEvents; j++)
+				int stepsPassed = 0;
+				for (int j = 0; j < questStep->RandomEvents && stepsPassed != questStep->ToSucced; j++)
 				{
-
+					int step = rand() % questStep->eventList.size();
+					bool stepResult = RunStep(questStep, totalUserStats, step);
+					if (stepResult)
+					{
+						stepsPassed++;
+					}
+				}
+				if (stepsPassed != questStep->ToSucced)
+				{
+					questFailed = true;
 				}
 			}
 		}
 	}
+
+	if (questFailed)
+	{
+		chatHandler->sendMessage(quest->FailText);
+	}
+	else
+	{
+		chatHandler->sendMessage(quest->SuccessText);
+	}
+
+	questManager->isQuestActive = false;
+	questManager->questStarted = false;
+	questManager->adventurers.empty();
+
 }
 
 void Bot::StartQuest(Quests::QuestPtr quest, string startingUser)
@@ -684,6 +725,7 @@ void Bot::StartQuest(Quests::QuestPtr quest, string startingUser)
 	questManager->adventurers.emplace_back(startingUser);
 
 	thread questRunner(&Bot::RunQuest, this, quest);
+	questRunner.detach();
 }
 
 int Bot::chat_run(unsigned int maxEventsToProcess)

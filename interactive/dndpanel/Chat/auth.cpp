@@ -1,4 +1,4 @@
-#include "ChatHandler.h"
+#include "auth.h"
 #include "internal/interactive_session.h"
 
 #include <windows.h>

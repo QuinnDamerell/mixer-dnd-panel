@@ -1,7 +1,5 @@
 #include "chat_session_internal.h"
 
-#include "chatutil.h"
-
 using namespace ChatSession;
 using namespace Chat;
 

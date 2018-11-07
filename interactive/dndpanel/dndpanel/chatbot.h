@@ -73,6 +73,7 @@ namespace ChatBot
 		void StartQuest(Quests::QuestPtr, std::string);
 
 		void RunQuest(Quests::QuestPtr);
+		bool RunStep(Quests::QuestStepPtr questStep, std::map<std::string, int> totalUserStats, int step);
 
 		int route_method(rapidjson::Document& doc);
 		int route_event(rapidjson::Document& doc);
